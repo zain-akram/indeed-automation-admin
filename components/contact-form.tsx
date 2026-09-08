@@ -1,0 +1,61 @@
+'use client';
+
+import { useActionState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { createContactAction, type ContactFormState } from '@/lib/actions/contacts';
+import type { Contact } from '@/lib/types';
+
+interface ContactFormProps {
+  action?: (state: ContactFormState, formData: FormData) => Promise<ContactFormState>;
+  initial?: Contact;
+  submitLabel?: string;
+}
+
+export function ContactForm({ action = createContactAction, initial, submitLabel = 'Create Contact' }: ContactFormProps) {
+  const [state, formAction, pending] = useActionState(action, {});
+  const idSuffix = initial?._id ?? 'new';
+
+  return (
+    <form action={formAction} className="flex max-w-md flex-col gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="firstName">First name</Label>
+          <Input
+            key={`firstName-${idSuffix}`}
+            id="firstName"
+            name="firstName"
+            defaultValue={initial?.firstName}
+            required
+            autoFocus
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="lastName">Last name</Label>
+          <Input key={`lastName-${idSuffix}`} id="lastName" name="lastName" defaultValue={initial?.lastName} required />
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="whatsapp">WhatsApp number</Label>
+        <Input
+          key={`whatsapp-${idSuffix}`}
+          id="whatsapp"
+          name="whatsapp"
+          placeholder="+14155552671"
+          defaultValue={initial?.whatsapp}
+          required
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea key={`notes-${idSuffix}`} id="notes" name="notes" rows={3} defaultValue={initial?.notes} />
+      </div>
+      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      <Button type="submit" disabled={pending} className="w-fit">
+        {pending ? 'Saving…' : submitLabel}
+      </Button>
+    </form>
+  );
+}
