@@ -25,7 +25,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     maxAge: 60 * 60 * 24 * 7,
   });
 
-  redirect('/jobs');
+  redirect('/');
 }
 
 export async function logout(): Promise<void> {
