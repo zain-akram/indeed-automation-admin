@@ -2,13 +2,19 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ContactFiles } from '@/components/contact-files';
+import { NotesCard } from '@/components/notes-card';
 import { ViewMessageButton } from '@/components/view-message-button';
-import { getContact } from '@/lib/actions/contacts';
+import { getContact, getContactFiles } from '@/lib/actions/contacts';
 import { getSubmissions } from '@/lib/actions/submissions';
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [contact, submissions] = await Promise.all([getContact(id), getSubmissions({ contactId: id })]);
+  const [contact, submissions, files] = await Promise.all([
+    getContact(id),
+    getSubmissions({ contactId: id }),
+    getContactFiles(id),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,16 +25,14 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         <p className="text-sm text-muted-foreground">{contact.whatsapp}</p>
       </div>
 
-      {contact.notes ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{contact.notes}</p>
-          </CardContent>
-        </Card>
-      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Files</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContactFiles contactId={id} files={files} />
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Interview Invites Sent</h2>
@@ -80,6 +84,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           </div>
         )}
       </div>
+
+      {contact.notes ? <NotesCard notes={contact.notes} /> : null}
     </div>
   );
 }

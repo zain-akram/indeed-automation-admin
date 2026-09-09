@@ -74,11 +74,18 @@ export async function updateSettingsAction(_prevState: SettingsFormState, formDa
   const whatsappBusinessId = String(formData.get('whatsappBusinessId') ?? '').trim();
   const whatsappPhoneNumberId = String(formData.get('whatsappPhoneNumberId') ?? '').trim();
   const whatsappApiToken = String(formData.get('whatsappApiToken') ?? '').trim();
+  const geminiApiKey = String(formData.get('geminiApiKey') ?? '').trim();
 
   try {
     await backendFetch('/settings', {
       method: 'PATCH',
-      body: JSON.stringify({ defaultInterviewLink, whatsappBusinessId, whatsappPhoneNumberId, whatsappApiToken }),
+      body: JSON.stringify({
+        defaultInterviewLink,
+        whatsappBusinessId,
+        whatsappPhoneNumberId,
+        whatsappApiToken,
+        geminiApiKey,
+      }),
     });
   } catch (error) {
     return { error: error instanceof BackendError ? error.message : 'Failed to update settings' };

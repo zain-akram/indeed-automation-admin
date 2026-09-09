@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ContactAutofill } from '@/components/contact-autofill';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
+import { isValidPkWhatsapp, PK_WHATSAPP_ERROR } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
 import type { Contact, Job, Submission, TemplateDef } from '@/lib/types';
 
@@ -34,7 +36,10 @@ function formatInterviewDateTime(date: Date, timeOfDay: string): string {
   const [hours, minutes] = timeOfDay.split(':').map(Number);
   const combined = new Date(date);
   combined.setHours(Number.isFinite(hours) ? hours : 9, Number.isFinite(minutes) ? minutes : 0, 0, 0);
-  return combined.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+  return combined.toLocaleString('en-US', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+  });
 }
 
 interface InterviewFormProps {
@@ -47,7 +52,12 @@ interface InterviewFormProps {
 export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink }: InterviewFormProps) {
   const [jobId, setJobId] = useState('');
   const [contactSelection, setContactSelection] = useState('');
-  const [newContact, setNewContact] = useState({ firstName: '', lastName: '', whatsapp: '', notes: '' });
+  const [newContact, setNewContact] = useState({
+    firstName: '',
+    lastName: '',
+    whatsapp: '',
+    notes: '',
+  });
   const [templateKey, setTemplateKey] = useState('');
   const [manualVariables, setManualVariables] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
@@ -56,12 +66,22 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
     existingSubmissions: Submission[];
   } | null>(null);
   const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
+  const [personSearch, setPersonSearch] = useState('');
   const [interviewDate, setInterviewDate] = useState<Date | undefined>(undefined);
   const [interviewTimeOfDay, setInterviewTimeOfDay] = useState('09:00');
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
   const isNewContact = contactSelection === NEW_CONTACT_VALUE;
   const selectedContact = contacts.find((c) => c._id === contactSelection);
+  const filteredContacts = useMemo(() => {
+    const query = personSearch.trim().toLowerCase();
+    if (!query) {
+      return contacts;
+    }
+    return contacts.filter((c) =>
+      `${c.firstName} ${c.lastName} ${c.whatsapp} ${c.notes ?? ''}`.toLowerCase().includes(query),
+    );
+  }, [contacts, personSearch]);
   const selectedJob = jobs.find((j) => j._id === jobId);
   const selectedTemplate = templates.find((t) => t.key === templateKey);
 
@@ -102,6 +122,10 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
         toast.error('Fill in first name, last name and WhatsApp number for the new contact');
         return null;
       }
+      if (!isValidPkWhatsapp(newContact.whatsapp)) {
+        toast.error(PK_WHATSAPP_ERROR);
+        return null;
+      }
     } else if (!contactSelection) {
       toast.error('Select a person');
       return null;
@@ -131,6 +155,19 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
     };
   }
 
+  function resetForm() {
+    setJobId('');
+    setContactSelection('');
+    setNewContact({ firstName: '', lastName: '', whatsapp: '', notes: '' });
+    setTemplateKey('');
+    setManualVariables({
+      [INTERVIEW_LINK_VARIABLE]: defaultInterviewLink ?? '',
+    });
+    setInterviewDate(undefined);
+    setInterviewTimeOfDay('09:00');
+    setPersonSearch('');
+  }
+
   function handleSend() {
     const payload = buildPayload(false);
     if (!payload) {
@@ -141,11 +178,15 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
       try {
         const result = await createSubmission(payload);
         if (result.duplicate) {
-          setDuplicateInfo({ payload, existingSubmissions: result.existingSubmissions ?? [] });
+          setDuplicateInfo({
+            payload,
+            existingSubmissions: result.existingSubmissions ?? [],
+          });
           return;
         }
         if (result.submission?.status === 'sent') {
           toast.success('Message sent');
+          resetForm();
         } else {
           toast.error(result.submission?.errorMessage ?? 'Message failed to send');
         }
@@ -165,6 +206,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
         const result = await createSubmission(payload);
         if (result.submission?.status === 'sent') {
           toast.success('Message sent');
+          resetForm();
         } else {
           toast.error(result.submission?.errorMessage ?? 'Message failed to send');
         }
@@ -204,7 +246,15 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
             <CardTitle>Person</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Popover open={personPopoverOpen} onOpenChange={setPersonPopoverOpen}>
+            <Popover
+              open={personPopoverOpen}
+              onOpenChange={(open) => {
+                setPersonPopoverOpen(open);
+                if (!open) {
+                  setPersonSearch('');
+                }
+              }}
+            >
               <PopoverTrigger render={<Button variant="outline" className="w-full justify-between font-normal" />}>
                 <span className="truncate">
                   {isNewContact
@@ -216,8 +266,13 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                 <ChevronsUpDownIcon className="opacity-50" />
               </PopoverTrigger>
               <PopoverContent className="w-(--anchor-width) p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search name, number, or notes…" />
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    autoFocus
+                    value={personSearch}
+                    onValueChange={setPersonSearch}
+                    placeholder="Search name, number, or notes…"
+                  />
                   <CommandList>
                     <CommandEmpty>No matches.</CommandEmpty>
                     <CommandGroup>
@@ -230,10 +285,10 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                       >
                         + Add new contact
                       </CommandItem>
-                      {contacts.map((contact) => (
+                      {filteredContacts.map((contact) => (
                         <CommandItem
                           key={contact._id}
-                          value={`${contact.firstName} ${contact.lastName} ${contact.whatsapp} ${contact.notes ?? ''}`}
+                          value={contact._id}
                           onSelect={() => {
                             setContactSelection(contact._id);
                             setPersonPopoverOpen(false);
@@ -249,40 +304,67 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
             </Popover>
 
             {isNewContact ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="firstName">First name</Label>
-                  <Input
-                    id="firstName"
-                    value={newContact.firstName}
-                    onChange={(e) => setNewContact((c) => ({ ...c, firstName: e.target.value }))}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="lastName">Last name</Label>
-                  <Input
-                    id="lastName"
-                    value={newContact.lastName}
-                    onChange={(e) => setNewContact((c) => ({ ...c, lastName: e.target.value }))}
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label htmlFor="whatsapp">WhatsApp number</Label>
-                  <Input
-                    id="whatsapp"
-                    placeholder="+14155552671"
-                    value={newContact.whatsapp}
-                    onChange={(e) => setNewContact((c) => ({ ...c, whatsapp: e.target.value }))}
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    rows={2}
-                    value={newContact.notes}
-                    onChange={(e) => setNewContact((c) => ({ ...c, notes: e.target.value }))}
-                  />
+              <div className="flex flex-col gap-3">
+                <ContactAutofill
+                  onResult={(result) =>
+                    setNewContact((c) => ({
+                      ...c,
+                      firstName: result.firstName ?? c.firstName,
+                      lastName: result.lastName ?? c.lastName,
+                      whatsapp: result.whatsapp ?? c.whatsapp,
+                    }))
+                  }
+                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="firstName">First name</Label>
+                    <Input
+                      id="firstName"
+                      value={newContact.firstName}
+                      onChange={(e) =>
+                        setNewContact((c) => ({
+                          ...c,
+                          firstName: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="lastName">Last name</Label>
+                    <Input
+                      id="lastName"
+                      value={newContact.lastName}
+                      onChange={(e) =>
+                        setNewContact((c) => ({
+                          ...c,
+                          lastName: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 sm:col-span-2">
+                    <Label htmlFor="whatsapp">WhatsApp number</Label>
+                    <Input
+                      id="whatsapp"
+                      placeholder="923001234567"
+                      value={newContact.whatsapp}
+                      onChange={(e) =>
+                        setNewContact((c) => ({
+                          ...c,
+                          whatsapp: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 sm:col-span-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      rows={2}
+                      value={newContact.notes}
+                      onChange={(e) => setNewContact((c) => ({ ...c, notes: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -321,7 +403,11 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                           render={<Button variant="outline" className="flex-1 justify-start font-normal" />}
                         >
                           <CalendarIcon className="opacity-50" />
-                          {interviewDate ? interviewDate.toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'Pick a date'}
+                          {interviewDate
+                            ? interviewDate.toLocaleDateString('en-US', {
+                                dateStyle: 'medium',
+                              })
+                            : 'Pick a date'}
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
@@ -363,7 +449,12 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                       <Input
                         id={variable.name}
                         value={manualVariables[variable.name] ?? ''}
-                        onChange={(e) => setManualVariables((v) => ({ ...v, [variable.name]: e.target.value }))}
+                        onChange={(e) =>
+                          setManualVariables((v) => ({
+                            ...v,
+                            [variable.name]: e.target.value,
+                          }))
+                        }
                       />
                       {defaultInterviewLink ? (
                         <Button
@@ -371,7 +462,10 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                           variant="outline"
                           className="shrink-0"
                           onClick={() =>
-                            setManualVariables((v) => ({ ...v, [INTERVIEW_LINK_VARIABLE]: defaultInterviewLink }))
+                            setManualVariables((v) => ({
+                              ...v,
+                              [INTERVIEW_LINK_VARIABLE]: defaultInterviewLink,
+                            }))
                           }
                         >
                           Use default
@@ -385,7 +479,12 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                     <Input
                       id={variable.name}
                       value={manualVariables[variable.name] ?? ''}
-                      onChange={(e) => setManualVariables((v) => ({ ...v, [variable.name]: e.target.value }))}
+                      onChange={(e) =>
+                        setManualVariables((v) => ({
+                          ...v,
+                          [variable.name]: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                 ),
@@ -404,7 +503,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
         </CardHeader>
         <CardContent>
           {previewText ? (
-            <p className="whitespace-pre-wrap rounded-none bg-muted/30 p-4 text-sm ring-1 ring-foreground/10">
+            <p className="rounded-none bg-muted/30 p-4 text-sm whitespace-pre-wrap ring-1 ring-foreground/10">
               {previewText}
             </p>
           ) : (

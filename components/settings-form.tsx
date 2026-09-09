@@ -40,6 +40,8 @@ export function SettingsForm({
   const [businessId, setBusinessId] = useState(settings.whatsappBusinessId);
   const [phoneNumberId, setPhoneNumberId] = useState(settings.whatsappPhoneNumberId);
   const [apiToken, setApiToken] = useState(settings.whatsappApiToken);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(settings.geminiApiKey);
   const [testResult, setTestResult] = useState<WhatsappTestResult | null>(initialConnectionStatus);
   const [testing, startTest] = useTransition();
   const [templateSync, setTemplateSync] = useState<TemplateSyncResult | null>(initialTemplateSync);
@@ -207,6 +209,38 @@ export function SettingsForm({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Autofill</CardTitle>
+          <CardDescription>
+            Gemini API key used to autofill contact fields from a pasted or uploaded screenshot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex max-w-md flex-col gap-2">
+            <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+            <div className="relative">
+              <Input
+                id="geminiApiKey"
+                name="geminiApiKey"
+                type={showGeminiKey ? 'text' : 'password'}
+                className="pr-9"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowGeminiKey((v) => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-2.5 text-muted-foreground hover:text-foreground"
+                aria-label={showGeminiKey ? 'Hide Gemini API key' : 'Show Gemini API key'}
+              >
+                {showGeminiKey ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

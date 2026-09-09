@@ -64,4 +64,14 @@ export interface Setting {
   whatsappBusinessId: string;
   whatsappPhoneNumberId: string;
   whatsappApiToken: string;
+  geminiApiKey: string;
+}
+
+export interface ContactFile {
+  _id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+  url: string;
 }

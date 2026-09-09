@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ContactAutofill } from '@/components/contact-autofill';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,12 +15,28 @@ interface ContactFormProps {
   submitLabel?: string;
 }
 
-export function ContactForm({ action = createContactAction, initial, submitLabel = 'Create Contact' }: ContactFormProps) {
+export function ContactForm({
+  action = createContactAction,
+  initial,
+  submitLabel = 'Create Contact',
+}: ContactFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const idSuffix = initial?._id ?? 'new';
+  const [firstName, setFirstName] = useState(initial?.firstName ?? '');
+  const [lastName, setLastName] = useState(initial?.lastName ?? '');
+  const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? '');
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-4">
+      {!initial ? (
+        <ContactAutofill
+          onResult={(result) => {
+            if (result.firstName) setFirstName(result.firstName);
+            if (result.lastName) setLastName(result.lastName);
+            if (result.whatsapp) setWhatsapp(result.whatsapp);
+          }}
+        />
+      ) : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="firstName">First name</Label>
@@ -27,14 +44,22 @@ export function ContactForm({ action = createContactAction, initial, submitLabel
             key={`firstName-${idSuffix}`}
             id="firstName"
             name="firstName"
-            defaultValue={initial?.firstName}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             required
             autoFocus
           />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="lastName">Last name</Label>
-          <Input key={`lastName-${idSuffix}`} id="lastName" name="lastName" defaultValue={initial?.lastName} required />
+          <Input
+            key={`lastName-${idSuffix}`}
+            id="lastName"
+            name="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            required
+          />
         </div>
       </div>
       <div className="flex flex-col gap-2">
@@ -43,8 +68,11 @@ export function ContactForm({ action = createContactAction, initial, submitLabel
           key={`whatsapp-${idSuffix}`}
           id="whatsapp"
           name="whatsapp"
-          placeholder="+14155552671"
-          defaultValue={initial?.whatsapp}
+          placeholder="923001234567"
+          pattern="\+?923\d{9}"
+          title="Pakistani number in the format 923XXXXXXXXX, e.g. 923001234567"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(e.target.value)}
           required
         />
       </div>

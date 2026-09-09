@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { backendFetch, BackendError } from '@/lib/backend';
-import type { Contact } from '@/lib/types';
+import { isValidPkWhatsapp, PK_WHATSAPP_ERROR } from '@/lib/phone';
+import type { Contact, ContactFile } from '@/lib/types';
 
 export async function getContacts(): Promise<Contact[]> {
   return backendFetch<Contact[]>('/contacts');
@@ -25,6 +26,10 @@ export async function createContactAction(_prevState: ContactFormState, formData
 
   if (!firstName || !lastName || !whatsapp) {
     return { error: 'First name, last name and WhatsApp number are required' };
+  }
+
+  if (!isValidPkWhatsapp(whatsapp)) {
+    return { error: PK_WHATSAPP_ERROR };
   }
 
   try {
@@ -54,6 +59,10 @@ export async function updateContactAction(
     return { error: 'First name, last name and WhatsApp number are required' };
   }
 
+  if (!isValidPkWhatsapp(whatsapp)) {
+    return { error: PK_WHATSAPP_ERROR };
+  }
+
   try {
     await backendFetch(`/contacts/${id}`, {
       method: 'PATCH',
@@ -70,4 +79,75 @@ export async function updateContactAction(
 export async function deleteContactAction(id: string): Promise<void> {
   await backendFetch(`/contacts/${id}`, { method: 'DELETE' });
   revalidatePath('/contacts');
+}
+
+export async function getContactFiles(contactId: string): Promise<ContactFile[]> {
+  return backendFetch<ContactFile[]>(`/contacts/${contactId}/files`);
+}
+
+export interface UploadFileState {
+  error?: string;
+  success?: boolean;
+}
+
+export async function uploadContactFileAction(
+  contactId: string,
+  _prevState: UploadFileState,
+  formData: FormData,
+): Promise<UploadFileState> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Select a file to upload' };
+  }
+
+  const uploadForm = new FormData();
+  uploadForm.set('file', file, file.name);
+
+  try {
+    await backendFetch(`/contacts/${contactId}/files`, {
+      method: 'POST',
+      body: uploadForm,
+    });
+  } catch (error) {
+    return { error: error instanceof BackendError ? error.message : 'Failed to upload file' };
+  }
+
+  revalidatePath(`/contacts/${contactId}`);
+  return { success: true };
+}
+
+export async function deleteContactFileAction(contactId: string, fileId: string): Promise<void> {
+  await backendFetch(`/contacts/${contactId}/files/${fileId}`, { method: 'DELETE' });
+  revalidatePath(`/contacts/${contactId}`);
+}
+
+export interface AutofillResult {
+  firstName?: string;
+  lastName?: string;
+  whatsapp?: string;
+}
+
+export interface AutofillState {
+  data?: AutofillResult;
+  error?: string;
+}
+
+export async function autofillContactAction(formData: FormData): Promise<AutofillState> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Select an image to autofill from' };
+  }
+
+  const uploadForm = new FormData();
+  uploadForm.set('file', file, file.name);
+
+  try {
+    const data = await backendFetch<AutofillResult>('/contacts/autofill', {
+      method: 'POST',
+      body: uploadForm,
+    });
+    return { data };
+  } catch (error) {
+    return { error: error instanceof BackendError ? error.message : 'Failed to autofill from image' };
+  }
 }

@@ -17,10 +17,12 @@ function adminSecret(): string {
 export class BackendError extends Error {}
 
 export async function backendFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const isFormData = init?.body instanceof FormData;
   const response = await fetch(`${baseUrl()}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      // Let fetch set its own multipart Content-Type (with boundary) for FormData bodies.
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'x-admin-secret': adminSecret(),
       ...init?.headers,
     },
