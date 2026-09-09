@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
 import { isValidPkWhatsapp, PK_WHATSAPP_ERROR } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
@@ -31,6 +32,10 @@ import type { Contact, Job, Submission, TemplateDef } from '@/lib/types';
 const NEW_CONTACT_VALUE = '__new__';
 const INTERVIEW_TIME_VARIABLE = 'interview_time';
 const INTERVIEW_LINK_VARIABLE = 'linterview_ink';
+
+function normalizeWhatsapp(value: string): string {
+  return value.trim().replace(/^\+/, '');
+}
 
 function formatInterviewDateTime(date: Date, timeOfDay: string): string {
   const [hours, minutes] = timeOfDay.split(':').map(Number);
@@ -168,6 +173,30 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
     setPersonSearch('');
   }
 
+  function handleAutofillResult(result: AutofillResult) {
+    const normalizedIncoming = result.whatsapp ? normalizeWhatsapp(result.whatsapp) : undefined;
+    const match = normalizedIncoming
+      ? contacts.find((c) => normalizeWhatsapp(c.whatsapp) === normalizedIncoming)
+      : undefined;
+
+    if (match) {
+      setContactSelection(match._id);
+      setPersonSearch('');
+      setPersonPopoverOpen(false);
+      toast.success(`Matched existing contact: ${match.firstName} ${match.lastName}`);
+      return;
+    }
+
+    setContactSelection(NEW_CONTACT_VALUE);
+    setNewContact((c) => ({
+      firstName: result.firstName ?? c.firstName,
+      lastName: result.lastName ?? c.lastName,
+      whatsapp: result.whatsapp ?? c.whatsapp,
+      notes: result.notes ? (c.notes ? `${c.notes}\n${result.notes}` : result.notes) : c.notes,
+    }));
+    toast.success('Fields autofilled — please review before saving');
+  }
+
   function handleSend() {
     const payload = buildPayload(false);
     if (!payload) {
@@ -246,6 +275,8 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
             <CardTitle>Person</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <ContactAutofill onResult={handleAutofillResult} />
+
             <Popover
               open={personPopoverOpen}
               onOpenChange={(open) => {
@@ -305,16 +336,6 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
 
             {isNewContact ? (
               <div className="flex flex-col gap-3">
-                <ContactAutofill
-                  onResult={(result) =>
-                    setNewContact((c) => ({
-                      ...c,
-                      firstName: result.firstName ?? c.firstName,
-                      lastName: result.lastName ?? c.lastName,
-                      whatsapp: result.whatsapp ?? c.whatsapp,
-                    }))
-                  }
-                />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="firstName">First name</Label>

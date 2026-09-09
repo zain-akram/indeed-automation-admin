@@ -125,6 +125,7 @@ export interface AutofillResult {
   firstName?: string;
   lastName?: string;
   whatsapp?: string;
+  notes?: string;
 }
 
 export interface AutofillState {

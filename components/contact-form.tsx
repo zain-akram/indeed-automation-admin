@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ContactAutofill } from '@/components/contact-autofill';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ export function ContactForm({
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [lastName, setLastName] = useState(initial?.lastName ?? '');
   const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? '');
+  const [notes, setNotes] = useState(initial?.notes ?? '');
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-4">
@@ -34,6 +36,8 @@ export function ContactForm({
             if (result.firstName) setFirstName(result.firstName);
             if (result.lastName) setLastName(result.lastName);
             if (result.whatsapp) setWhatsapp(result.whatsapp);
+            if (result.notes) setNotes((n) => (n ? `${n}\n${result.notes}` : result.notes!));
+            toast.success('Fields autofilled — please review before saving');
           }}
         />
       ) : null}
@@ -78,7 +82,14 @@ export function ContactForm({
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="notes">Notes</Label>
-        <Textarea key={`notes-${idSuffix}`} id="notes" name="notes" rows={3} defaultValue={initial?.notes} />
+        <Textarea
+          key={`notes-${idSuffix}`}
+          id="notes"
+          name="notes"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
       </div>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="w-fit">

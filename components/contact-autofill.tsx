@@ -18,7 +18,6 @@ export function ContactAutofill({ onResult }: { onResult: (result: AutofillResul
       const result = await autofillContactAction(formData);
       if (result.data) {
         onResult(result.data);
-        toast.success('Fields autofilled — please review before saving');
       } else {
         toast.error(result.error ?? 'Failed to autofill from image');
       }
