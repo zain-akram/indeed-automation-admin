@@ -69,8 +69,12 @@ export async function testWhatsappCredentials(
   }
 }
 
-export async function updateSettingsAction(_prevState: SettingsFormState, formData: FormData): Promise<SettingsFormState> {
+export async function updateSettingsAction(
+  _prevState: SettingsFormState,
+  formData: FormData,
+): Promise<SettingsFormState> {
   const defaultInterviewLink = String(formData.get('defaultInterviewLink') ?? '').trim();
+  const defaultJobId = String(formData.get('defaultJobId') ?? '').trim();
   const whatsappBusinessId = String(formData.get('whatsappBusinessId') ?? '').trim();
   const whatsappPhoneNumberId = String(formData.get('whatsappPhoneNumberId') ?? '').trim();
   const whatsappApiToken = String(formData.get('whatsappApiToken') ?? '').trim();
@@ -81,6 +85,7 @@ export async function updateSettingsAction(_prevState: SettingsFormState, formDa
       method: 'PATCH',
       body: JSON.stringify({
         defaultInterviewLink,
+        defaultJobId,
         whatsappBusinessId,
         whatsappPhoneNumberId,
         whatsappApiToken,

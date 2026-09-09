@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   syncWhatsappTemplates,
   testWhatsappCredentials,
@@ -16,9 +17,10 @@ import {
   type TemplateSyncResult,
   type WhatsappTestResult,
 } from '@/lib/actions/settings';
-import type { Setting } from '@/lib/types';
+import type { Job, Setting } from '@/lib/types';
 
 const initialState: SettingsFormState = {};
+const NO_DEFAULT_JOB_VALUE = '__none__';
 
 function templateStatusVariant(status?: string): 'default' | 'secondary' | 'destructive' {
   if (status === 'APPROVED') return 'default';
@@ -28,14 +30,17 @@ function templateStatusVariant(status?: string): 'default' | 'secondary' | 'dest
 
 export function SettingsForm({
   settings,
+  jobs,
   initialConnectionStatus,
   initialTemplateSync,
 }: {
   settings: Setting;
+  jobs: Job[];
   initialConnectionStatus: WhatsappTestResult | null;
   initialTemplateSync: TemplateSyncResult | null;
 }) {
   const [state, formAction, pending] = useActionState(updateSettingsAction, initialState);
+  const [defaultJobId, setDefaultJobId] = useState(settings.defaultJobId);
   const [showToken, setShowToken] = useState(false);
   const [businessId, setBusinessId] = useState(settings.whatsappBusinessId);
   const [phoneNumberId, setPhoneNumberId] = useState(settings.whatsappPhoneNumberId);
@@ -84,7 +89,7 @@ export function SettingsForm({
           <CardHeader>
             <CardTitle>Interview Defaults</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="defaultInterviewLink">Default Interview Link</Label>
               <Input
@@ -98,6 +103,29 @@ export function SettingsForm({
                 Available as a &quot;Use default&quot; button next to the Interview Link field on the New Interview
                 form.
               </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="defaultJobId">Default Job</Label>
+              <input type="hidden" name="defaultJobId" value={defaultJobId} />
+              <Select
+                value={defaultJobId || NO_DEFAULT_JOB_VALUE}
+                onValueChange={(value) => setDefaultJobId(value === NO_DEFAULT_JOB_VALUE ? '' : (value ?? ''))}
+              >
+                <SelectTrigger id="defaultJobId" className="w-full">
+                  <SelectValue placeholder="None">
+                    {() => jobs.find((j) => j._id === defaultJobId)?.title ?? 'None'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_DEFAULT_JOB_VALUE}>None</SelectItem>
+                  {jobs.map((job) => (
+                    <SelectItem key={job._id} value={job._id}>
+                      {job.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Pre-selected automatically on the New Interview form.</p>
             </div>
           </CardContent>
         </Card>

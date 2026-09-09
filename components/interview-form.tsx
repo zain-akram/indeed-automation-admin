@@ -23,9 +23,9 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { AutofillResult } from '@/lib/actions/contacts';
+import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
-import { isValidPkWhatsapp, PK_WHATSAPP_ERROR } from '@/lib/phone';
+import { isValidPkWhatsapp, PK_WHATSAPP_ERROR, sanitizePkWhatsappInput } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
 import type { Contact, Job, Submission, TemplateDef } from '@/lib/types';
 
@@ -52,10 +52,11 @@ interface InterviewFormProps {
   contacts: Contact[];
   templates: TemplateDef[];
   defaultInterviewLink?: string;
+  defaultJobId?: string;
 }
 
-export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink }: InterviewFormProps) {
-  const [jobId, setJobId] = useState('');
+export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink, defaultJobId }: InterviewFormProps) {
+  const [jobId, setJobId] = useState(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
   const [contactSelection, setContactSelection] = useState('');
   const [newContact, setNewContact] = useState({
     firstName: '',
@@ -161,7 +162,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
   }
 
   function resetForm() {
-    setJobId('');
+    setJobId(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
     setContactSelection('');
     setNewContact({ firstName: '', lastName: '', whatsapp: '', notes: '' });
     setTemplateKey('');
@@ -184,6 +185,12 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
       setPersonSearch('');
       setPersonPopoverOpen(false);
       toast.success(`Matched existing contact: ${match.firstName} ${match.lastName}`);
+      if (result.notes) {
+        const mergedNotes = match.notes ? `${match.notes}\n${result.notes}` : result.notes;
+        appendContactNotesAction(match._id, mergedNotes).catch(() => {
+          toast.error(`Could not save extracted details to ${match.firstName}'s notes`);
+        });
+      }
       return;
     }
 
@@ -191,7 +198,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
     setNewContact((c) => ({
       firstName: result.firstName ?? c.firstName,
       lastName: result.lastName ?? c.lastName,
-      whatsapp: result.whatsapp ?? c.whatsapp,
+      whatsapp: result.whatsapp ? sanitizePkWhatsappInput(result.whatsapp) : c.whatsapp,
       notes: result.notes ? (c.notes ? `${c.notes}\n${result.notes}` : result.notes) : c.notes,
     }));
     toast.success('Fields autofilled — please review before saving');
@@ -372,7 +379,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink 
                       onChange={(e) =>
                         setNewContact((c) => ({
                           ...c,
-                          whatsapp: e.target.value,
+                          whatsapp: sanitizePkWhatsappInput(e.target.value),
                         }))
                       }
                     />

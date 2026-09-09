@@ -61,6 +61,7 @@ export interface PopulatedSubmission extends Omit<Submission, 'job' | 'contact'>
 export interface Setting {
   _id: string;
   defaultInterviewLink: string;
+  defaultJobId: string;
   whatsappBusinessId: string;
   whatsappPhoneNumberId: string;
   whatsappApiToken: string;

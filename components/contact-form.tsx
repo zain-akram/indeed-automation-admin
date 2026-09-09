@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createContactAction, type ContactFormState } from '@/lib/actions/contacts';
+import { sanitizePkWhatsappInput } from '@/lib/phone';
 import type { Contact } from '@/lib/types';
 
 interface ContactFormProps {
@@ -35,7 +36,7 @@ export function ContactForm({
           onResult={(result) => {
             if (result.firstName) setFirstName(result.firstName);
             if (result.lastName) setLastName(result.lastName);
-            if (result.whatsapp) setWhatsapp(result.whatsapp);
+            if (result.whatsapp) setWhatsapp(sanitizePkWhatsappInput(result.whatsapp));
             if (result.notes) setNotes((n) => (n ? `${n}\n${result.notes}` : result.notes!));
             toast.success('Fields autofilled — please review before saving');
           }}
@@ -76,7 +77,7 @@ export function ContactForm({
           pattern="\+?923\d{9}"
           title="Pakistani number in the format 923XXXXXXXXX, e.g. 923001234567"
           value={whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
+          onChange={(e) => setWhatsapp(sanitizePkWhatsappInput(e.target.value))}
           required
         />
       </div>

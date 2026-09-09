@@ -20,6 +20,7 @@ export default async function NewInterviewPage() {
         contacts={contacts}
         templates={templates}
         defaultInterviewLink={settings.defaultInterviewLink}
+        defaultJobId={settings.defaultJobId}
       />
     </div>
   );

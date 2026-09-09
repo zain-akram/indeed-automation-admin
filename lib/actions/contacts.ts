@@ -81,6 +81,15 @@ export async function deleteContactAction(id: string): Promise<void> {
   revalidatePath('/contacts');
 }
 
+export async function appendContactNotesAction(id: string, notes: string): Promise<void> {
+  await backendFetch(`/contacts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes }),
+  });
+  revalidatePath(`/contacts/${id}`);
+  revalidatePath('/contacts');
+}
+
 export async function getContactFiles(contactId: string): Promise<ContactFile[]> {
   return backendFetch<ContactFile[]>(`/contacts/${contactId}/files`);
 }
