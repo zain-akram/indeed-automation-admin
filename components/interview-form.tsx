@@ -359,6 +359,28 @@ export function InterviewForm({
     toast.success('Fields autofilled — please review before saving');
   }
 
+  function reportSendResult(submission: Submission | undefined): boolean {
+    const whatsappOk = !sendsWhatsapp || submission?.status === 'sent';
+    const emailOk = !sendsEmail || submission?.emailStatus === 'sent';
+
+    if (whatsappOk && emailOk) {
+      toast.success(
+        sendsWhatsapp && sendsEmail ? 'Message and email sent' : sendsEmail ? 'Email sent' : 'Message sent',
+      );
+      return true;
+    }
+
+    const errors: string[] = [];
+    if (!whatsappOk) {
+      errors.push(submission?.errorMessage ?? 'WhatsApp message failed to send');
+    }
+    if (!emailOk) {
+      errors.push(submission?.emailError ?? 'Email failed to send');
+    }
+    toast.error(errors.join(' — '));
+    return false;
+  }
+
   function handleSend() {
     const payload = buildPayload(false);
     if (!payload) {
@@ -375,11 +397,8 @@ export function InterviewForm({
           });
           return;
         }
-        if (result.submission?.status === 'sent') {
-          toast.success('Message sent');
+        if (reportSendResult(result.submission)) {
           resetForm();
-        } else {
-          toast.error(result.submission?.errorMessage ?? 'Message failed to send');
         }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to submit');
@@ -395,11 +414,8 @@ export function InterviewForm({
     startTransition(async () => {
       try {
         const result = await createSubmission(payload);
-        if (result.submission?.status === 'sent') {
-          toast.success('Message sent');
+        if (reportSendResult(result.submission)) {
           resetForm();
-        } else {
-          toast.error(result.submission?.errorMessage ?? 'Message failed to send');
         }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to submit');
