@@ -88,7 +88,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       {submission.contact?.email ?? '—'}
                     </TableCell>
                     <TableCell>
-                      <CandidateStatus submission={submission} />
+                      <CandidateStatus submission={submission} showTemplate />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <EmailTrackingIcons submission={submission} />
