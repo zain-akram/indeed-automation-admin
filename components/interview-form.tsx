@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { WhatsappIcon } from '@/components/whatsapp-icon';
 import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
+import { resolvePlaceholders } from '@/lib/email-placeholders';
 import { isValidWhatsapp, WHATSAPP_ERROR, sanitizeWhatsappInput } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
 import {
@@ -53,6 +54,13 @@ const CHANNEL_OPTIONS: { value: DeliveryChannel; label: string }[] = [
 
 function normalizeWhatsapp(value: string): string {
   return value.replace(/\D/g, '');
+}
+
+/** Mirrors the backend's link format so the email preview matches what actually gets sent. */
+function buildWhatsappLinkPreview(displayPhoneNumber: string, name: string, roleName: string): string {
+  const digits = displayPhoneNumber.replace(/\D/g, '');
+  const prefill = `Hi, I am ${name}, I have received your email and I am still interested in your ${roleName} position.`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(prefill)}`;
 }
 
 function formatInterviewDateTime(date: Date, timeOfDay: string): string {
@@ -149,6 +157,29 @@ export function InterviewForm({
     : selectedContact
       ? `${selectedContact.firstName} ${selectedContact.lastName}`.trim()
       : '';
+
+  const selectedEmailTemplate = emailTemplates.find((t) => t._id === emailTemplateId);
+  const activeWhatsappAccount = whatsappAccounts.find((a) => a.isActive);
+  const emailPreviewValues: Record<string, string> = {
+    'contact.name': contactName,
+    'contact.email': contactEmail,
+    'job.title': selectedJob?.title ?? '',
+    'job.description': selectedJob?.description ?? '',
+    'whatsapp.link': activeWhatsappAccount?.displayPhoneNumber
+      ? buildWhatsappLinkPreview(
+          activeWhatsappAccount.displayPhoneNumber,
+          contactName || 'there',
+          selectedJob?.title ?? '',
+        )
+      : '',
+    'whatsapp.number': activeWhatsappAccount?.displayPhoneNumber ?? '',
+  };
+  const emailPreviewSubject = selectedEmailTemplate
+    ? resolvePlaceholders(selectedEmailTemplate.subject, emailPreviewValues)
+    : '';
+  const emailPreviewBody = selectedEmailTemplate
+    ? resolvePlaceholders(selectedEmailTemplate.body, emailPreviewValues)
+    : '';
 
   // Reset per-variable mapping state whenever the selected template changes, and seed sensible
   // defaults (guessed type, and the default interview link for anything link-shaped). Adjusting
@@ -375,22 +406,40 @@ export function InterviewForm({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium">Job</h2>
-          <Select value={jobId} onValueChange={(value) => setJobId(value ?? '')}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a job">{() => selectedJob?.title ?? 'Select a job'}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {jobs.map((job) => (
-                <SelectItem key={job._id} value={job._id}>
-                  {job.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium">Job</h2>
+            <Select value={jobId} onValueChange={(value) => setJobId(value ?? '')}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a job">{() => selectedJob?.title ?? 'Select a job'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {jobs.map((job) => (
+                  <SelectItem key={job._id} value={job._id}>
+                    {job.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">Delivery Channel</h2>
+            <Select value={channel} onValueChange={(value) => setChannel((value as DeliveryChannel) ?? 'whatsapp')}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{() => CHANNEL_OPTIONS.find((o) => o.value === channel)?.label}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {CHANNEL_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -520,276 +569,283 @@ export function InterviewForm({
             </div>
           ) : null}
         </div>
+      </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium">Template</h2>
-          <Select value={templateKey} onValueChange={(value) => setTemplateKey(value ?? '')}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a template">
-                {() => selectedTemplate?.label ?? 'Select a template'}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {availableTemplates.map((template) => {
-                const isApproved = !template.status || template.status === 'APPROVED';
-                return (
-                  <SelectItem key={template.key} value={template.key}>
-                    {template.label}
-                    {isApproved ? '' : ` — ${template.status}`}
+      <div className={sendsEmail ? 'grid gap-6 lg:grid-cols-2' : 'grid gap-6'}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium">WhatsApp Account</h2>
+            <Select
+              value={whatsappAccountId}
+              onValueChange={(value) => {
+                const nextAccountId = value ?? '';
+                setWhatsappAccountId(nextAccountId);
+                const nextTemplates = templatesByAccount[nextAccountId] ?? [];
+                const nextAccount = whatsappAccounts.find((a) => a._id === nextAccountId);
+                const nextDefault = nextAccount?.defaultTemplateKey;
+                if (nextDefault && nextTemplates.some((t) => t.key === nextDefault)) {
+                  setTemplateKey(nextDefault);
+                } else if (!nextTemplates.some((t) => t.key === templateKey)) {
+                  setTemplateKey('');
+                }
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a WhatsApp account">
+                  {() => {
+                    const account = whatsappAccounts.find((a) => a._id === whatsappAccountId);
+                    return account ? (
+                      <span className="flex items-center gap-1.5">
+                        <WhatsappIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        {account.label}
+                      </span>
+                    ) : (
+                      'Select a WhatsApp account'
+                    );
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {whatsappAccounts.map((account) => (
+                  <SelectItem key={account._id} value={account._id}>
+                    <WhatsappIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    {account.label}
+                    {account.isActive ? ' (Active)' : ''}
                   </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          {availableTemplates.length === 0 ? (
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
-              No templates synced for this WhatsApp account yet. Sync templates in Settings first.
+              Defaults to the active account. The message sends from here.
             </p>
-          ) : null}
-          {selectedTemplate && !isTemplateApproved ? (
-            <p className="text-xs text-destructive">
-              {`This template is ${selectedTemplate.status?.toLowerCase()} on WhatsApp — it can't be sent until Meta approves it.`}
-            </p>
-          ) : null}
+          </div>
 
-          {selectedTemplate && isPositional
-            ? selectedTemplate.variables.map((name) => (
-                <div
-                  key={name}
-                  className="flex items-center gap-2 border-b border-foreground/10 pb-2 last:border-b-0 last:pb-0"
-                >
-                  <Label htmlFor={name} className="w-28 shrink-0 text-xs text-muted-foreground">
-                    {humanizeVariableName(name)}
-                  </Label>
-                  <Input
-                    id={name}
-                    className="h-8 flex-1 text-xs"
-                    value={manualVariables[name] ?? ''}
-                    onChange={(e) => setManualVariables((v) => ({ ...v, [name]: e.target.value }))}
-                  />
-                </div>
-              ))
-            : (selectedTemplate?.variables ?? []).map((name) => {
-                const type = variableTypes[name] ?? 'text';
-                const typeLabel = VARIABLE_TYPE_OPTIONS.find((opt) => opt.value === type)?.label ?? type;
-                return (
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium">Template</h2>
+            <Select value={templateKey} onValueChange={(value) => setTemplateKey(value ?? '')}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a template">
+                  {() => selectedTemplate?.label ?? 'Select a template'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {availableTemplates.map((template) => {
+                  const isApproved = !template.status || template.status === 'APPROVED';
+                  return (
+                    <SelectItem key={template.key} value={template.key}>
+                      {template.label}
+                      {isApproved ? '' : ` — ${template.status}`}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {availableTemplates.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No templates synced for this WhatsApp account yet. Sync templates in Settings first.
+              </p>
+            ) : null}
+            {selectedTemplate && !isTemplateApproved ? (
+              <p className="text-xs text-destructive">
+                {`This template is ${selectedTemplate.status?.toLowerCase()} on WhatsApp — it can't be sent until Meta approves it.`}
+              </p>
+            ) : null}
+
+            {selectedTemplate && isPositional
+              ? selectedTemplate.variables.map((name) => (
                   <div
                     key={name}
-                    className="flex flex-wrap items-center gap-2 border-b border-foreground/10 pb-2 last:border-b-0 last:pb-0"
+                    className="flex items-center gap-2 border-b border-foreground/10 pb-2 last:border-b-0 last:pb-0"
                   >
-                    <span className="w-28 shrink-0 text-xs text-muted-foreground">{humanizeVariableName(name)}</span>
-
-                    <div className="min-w-0 flex-1">
-                      {type === 'name' ? (
-                        <p className="truncate text-xs text-foreground">{contactName || '—'}</p>
-                      ) : type === 'role' ? (
-                        <p className="truncate text-xs text-foreground">{selectedJob?.title || '—'}</p>
-                      ) : type === 'date' ? (
-                        <div className="flex gap-1.5">
-                          <Popover
-                            open={openDatePopoverFor === name}
-                            onOpenChange={(open) => setOpenDatePopoverFor(open ? name : null)}
-                          >
-                            <PopoverTrigger
-                              render={
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 flex-1 justify-start text-xs font-normal"
-                                />
-                              }
-                            >
-                              <CalendarIcon className="opacity-50" />
-                              {interviewDates[name]
-                                ? interviewDates[name]!.toLocaleDateString('en-US', { dateStyle: 'medium' })
-                                : 'Pick a date'}
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={interviewDates[name]}
-                                onSelect={(date) => {
-                                  setInterviewDates((d) => ({ ...d, [name]: date }));
-                                  setOpenDatePopoverFor(null);
-                                  if (date) {
-                                    setManualVariables((v) => ({
-                                      ...v,
-                                      [name]: formatInterviewDateTime(date, interviewTimesOfDay[name] ?? '09:00'),
-                                    }));
-                                  }
-                                }}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <Input
-                            type="time"
-                            className="h-8 w-24 shrink-0 text-xs"
-                            value={interviewTimesOfDay[name] ?? '09:00'}
-                            onChange={(e) => {
-                              setInterviewTimesOfDay((t) => ({ ...t, [name]: e.target.value }));
-                              const date = interviewDates[name];
-                              if (date) {
-                                setManualVariables((v) => ({
-                                  ...v,
-                                  [name]: formatInterviewDateTime(date, e.target.value),
-                                }));
-                              }
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex gap-1.5">
-                          <Input
-                            id={name}
-                            className="h-8 flex-1 text-xs"
-                            value={manualVariables[name] ?? ''}
-                            onChange={(e) => setManualVariables((v) => ({ ...v, [name]: e.target.value }))}
-                          />
-                          {defaultInterviewLink ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 shrink-0 text-xs"
-                              onClick={() => setManualVariables((v) => ({ ...v, [name]: defaultInterviewLink }))}
-                            >
-                              Use default
-                            </Button>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-
-                    <Select
-                      value={type}
-                      onValueChange={(value) =>
-                        setVariableTypes((t) => ({ ...t, [name]: (value as VariableType) ?? 'text' }))
-                      }
-                    >
-                      <SelectTrigger size="sm" className="w-40 shrink-0 text-xs">
-                        <SelectValue>{() => typeLabel}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {VARIABLE_TYPE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor={name} className="w-28 shrink-0 text-xs text-muted-foreground">
+                      {humanizeVariableName(name)}
+                    </Label>
+                    <Input
+                      id={name}
+                      className="h-8 flex-1 text-xs"
+                      value={manualVariables[name] ?? ''}
+                      onChange={(e) => setManualVariables((v) => ({ ...v, [name]: e.target.value }))}
+                    />
                   </div>
-                );
-              })}
-        </div>
+                ))
+              : (selectedTemplate?.variables ?? []).map((name) => {
+                  const type = variableTypes[name] ?? 'text';
+                  const typeLabel = VARIABLE_TYPE_OPTIONS.find((opt) => opt.value === type)?.label ?? type;
+                  return (
+                    <div
+                      key={name}
+                      className="flex flex-wrap items-center gap-2 border-b border-foreground/10 pb-2 last:border-b-0 last:pb-0"
+                    >
+                      <span className="w-28 shrink-0 text-xs text-muted-foreground">{humanizeVariableName(name)}</span>
 
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">Delivery Channel</h2>
-          <Select value={channel} onValueChange={(value) => setChannel((value as DeliveryChannel) ?? 'whatsapp')}>
-            <SelectTrigger className="w-full">
-              <SelectValue>{() => CHANNEL_OPTIONS.find((o) => o.value === channel)?.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {CHANNEL_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {sendsEmail && !contactEmail ? (
-            <p className="text-xs text-destructive">
-              This contact has no email address — add one above, or switch to WhatsApp only.
-            </p>
-          ) : null}
+                      <div className="min-w-0 flex-1">
+                        {type === 'name' ? (
+                          <p className="truncate text-xs text-foreground">{contactName || '—'}</p>
+                        ) : type === 'role' ? (
+                          <p className="truncate text-xs text-foreground">{selectedJob?.title || '—'}</p>
+                        ) : type === 'date' ? (
+                          <div className="flex gap-1.5">
+                            <Popover
+                              open={openDatePopoverFor === name}
+                              onOpenChange={(open) => setOpenDatePopoverFor(open ? name : null)}
+                            >
+                              <PopoverTrigger
+                                render={
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 flex-1 justify-start text-xs font-normal"
+                                  />
+                                }
+                              >
+                                <CalendarIcon className="opacity-50" />
+                                {interviewDates[name]
+                                  ? interviewDates[name]!.toLocaleDateString('en-US', { dateStyle: 'medium' })
+                                  : 'Pick a date'}
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={interviewDates[name]}
+                                  onSelect={(date) => {
+                                    setInterviewDates((d) => ({ ...d, [name]: date }));
+                                    setOpenDatePopoverFor(null);
+                                    if (date) {
+                                      setManualVariables((v) => ({
+                                        ...v,
+                                        [name]: formatInterviewDateTime(date, interviewTimesOfDay[name] ?? '09:00'),
+                                      }));
+                                    }
+                                  }}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <Input
+                              type="time"
+                              className="h-8 w-24 shrink-0 text-xs"
+                              value={interviewTimesOfDay[name] ?? '09:00'}
+                              onChange={(e) => {
+                                setInterviewTimesOfDay((t) => ({ ...t, [name]: e.target.value }));
+                                const date = interviewDates[name];
+                                if (date) {
+                                  setManualVariables((v) => ({
+                                    ...v,
+                                    [name]: formatInterviewDateTime(date, e.target.value),
+                                  }));
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex gap-1.5">
+                            <Input
+                              id={name}
+                              className="h-8 flex-1 text-xs"
+                              value={manualVariables[name] ?? ''}
+                              onChange={(e) => setManualVariables((v) => ({ ...v, [name]: e.target.value }))}
+                            />
+                            {defaultInterviewLink ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 shrink-0 text-xs"
+                                onClick={() => setManualVariables((v) => ({ ...v, [name]: defaultInterviewLink }))}
+                              >
+                                Use default
+                              </Button>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+
+                      <Select
+                        value={type}
+                        onValueChange={(value) =>
+                          setVariableTypes((t) => ({ ...t, [name]: (value as VariableType) ?? 'text' }))
+                        }
+                      >
+                        <SelectTrigger size="sm" className="w-40 shrink-0 text-xs">
+                          <SelectValue>{() => typeLabel}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VARIABLE_TYPE_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium">Message Preview</h2>
+            <div className="rounded-none bg-muted/20 p-4 ring-1 ring-foreground/10">
+              {previewText ? (
+                <p className="text-sm whitespace-pre-wrap">{previewText}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Select a template to see a preview.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {sendsEmail ? (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium">Email Template</h2>
-            {emailTemplates.length === 0 ? (
-              <p className="text-xs text-destructive">
-                No email templates yet — create one in Email Templates before sending.
-              </p>
-            ) : (
-              <Select value={emailTemplateId} onValueChange={(value) => setEmailTemplateId((value as string) ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>{() => emailTemplates.find((t) => t._id === emailTemplateId)?.label}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {emailTemplates.map((template) => (
-                    <SelectItem key={template._id} value={template._id}>
-                      {template.label}
-                      {template.isDefault ? ' (Default)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-sm font-medium">Email Template</h2>
+              {!contactEmail ? (
+                <p className="text-xs text-destructive">
+                  This contact has no email address — add one above, or switch to WhatsApp only.
+                </p>
+              ) : null}
+              {emailTemplates.length === 0 ? (
+                <p className="text-xs text-destructive">
+                  No email templates yet — create one in Email Templates before sending.
+                </p>
+              ) : (
+                <Select value={emailTemplateId} onValueChange={(value) => setEmailTemplateId((value as string) ?? '')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{() => emailTemplates.find((t) => t._id === emailTemplateId)?.label}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {emailTemplates.map((template) => (
+                      <SelectItem key={template._id} value={template._id}>
+                        {template.label}
+                        {template.isDefault ? ' (Default)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium">Email Preview</h2>
+              <div className="rounded-none bg-muted/20 p-4 ring-1 ring-foreground/10">
+                {selectedEmailTemplate ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="border-b border-foreground/10 pb-2 text-sm font-medium">{emailPreviewSubject}</p>
+                    <div
+                      className="max-h-72 overflow-y-auto text-sm [&_a]:text-primary [&_a]:underline [&_p]:mb-2"
+                      dangerouslySetInnerHTML={{ __html: emailPreviewBody }}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Select an email template to see a preview.</p>
+                )}
+              </div>
+            </div>
           </div>
         ) : null}
-
-        <Button onClick={handleSend} disabled={pending || (sendsWhatsapp && !isTemplateApproved)} className="w-fit">
-          {pending ? 'Sending…' : 'Send Message'}
-        </Button>
       </div>
 
-      <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:h-fit">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium">WhatsApp Account</h2>
-          <Select
-            value={whatsappAccountId}
-            onValueChange={(value) => {
-              const nextAccountId = value ?? '';
-              setWhatsappAccountId(nextAccountId);
-              const nextTemplates = templatesByAccount[nextAccountId] ?? [];
-              const nextAccount = whatsappAccounts.find((a) => a._id === nextAccountId);
-              const nextDefault = nextAccount?.defaultTemplateKey;
-              if (nextDefault && nextTemplates.some((t) => t.key === nextDefault)) {
-                setTemplateKey(nextDefault);
-              } else if (!nextTemplates.some((t) => t.key === templateKey)) {
-                setTemplateKey('');
-              }
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a WhatsApp account">
-                {() => {
-                  const account = whatsappAccounts.find((a) => a._id === whatsappAccountId);
-                  return account ? (
-                    <span className="flex items-center gap-1.5">
-                      <WhatsappIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                      {account.label}
-                    </span>
-                  ) : (
-                    'Select a WhatsApp account'
-                  );
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {whatsappAccounts.map((account) => (
-                <SelectItem key={account._id} value={account._id}>
-                  <WhatsappIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                  {account.label}
-                  {account.isActive ? ' (Active)' : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">Defaults to the active account. The message sends from here.</p>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium">Message Preview</h2>
-          <div className="rounded-none bg-muted/20 p-4 ring-1 ring-foreground/10">
-            {previewText ? (
-              <p className="text-sm whitespace-pre-wrap">{previewText}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Select a template to see a preview.</p>
-            )}
-          </div>
-        </div>
-      </div>
+      <Button onClick={handleSend} disabled={pending || (sendsWhatsapp && !isTemplateApproved)} className="w-fit">
+        {pending ? 'Sending…' : 'Send Message'}
+      </Button>
 
       <AlertDialog open={duplicateInfo !== null} onOpenChange={(open) => !open && setDuplicateInfo(null)}>
         <AlertDialogContent>
