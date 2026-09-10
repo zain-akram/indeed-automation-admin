@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { resolvePlaceholders } from '@/lib/email-placeholders';
+import { resolvePlaceholders, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
 import type { Contact, EmailTemplate, Job } from '@/lib/types';
 
 export function EmailPreviewButton({
@@ -21,7 +21,7 @@ export function EmailPreviewButton({
     'job.description': job?.description ?? '',
   };
   const subject = resolvePlaceholders(template.subject, values);
-  const body = resolvePlaceholders(template.body, values);
+  const body = resolvePlaceholders(template.body, withLinkedWhatsappNumber(values));
 
   return (
     <Dialog>

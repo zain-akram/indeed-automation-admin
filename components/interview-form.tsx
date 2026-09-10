@@ -25,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { WhatsappIcon } from '@/components/whatsapp-icon';
 import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
-import { resolvePlaceholders } from '@/lib/email-placeholders';
+import { resolvePlaceholders, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
 import { isValidWhatsapp, WHATSAPP_ERROR, sanitizeWhatsappInput } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
 import {
@@ -178,7 +178,7 @@ export function InterviewForm({
     ? resolvePlaceholders(selectedEmailTemplate.subject, emailPreviewValues)
     : '';
   const emailPreviewBody = selectedEmailTemplate
-    ? resolvePlaceholders(selectedEmailTemplate.body, emailPreviewValues)
+    ? resolvePlaceholders(selectedEmailTemplate.body, withLinkedWhatsappNumber(emailPreviewValues))
     : '';
 
   // Reset per-variable mapping state whenever the selected template changes, and seed sensible

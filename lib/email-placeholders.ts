@@ -25,3 +25,16 @@ export const SAMPLE_PLACEHOLDER_VALUES: Record<string, string> = {
 export function resolvePlaceholders(source: string, values: Record<string, string>): string {
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{{${key}}}`, value), source);
 }
+
+/**
+ * For HTML body previews only (never the subject): turns {{whatsapp.number}} into a link to the same
+ * WhatsApp chat as {{whatsapp.link}}, matching what the backend actually sends.
+ */
+export function withLinkedWhatsappNumber(values: Record<string, string>): Record<string, string> {
+  const number = values['whatsapp.number'];
+  const link = values['whatsapp.link'];
+  if (!number || !link) {
+    return values;
+  }
+  return { ...values, 'whatsapp.number': `<a href="${link}">${number}</a>` };
+}

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { PlaceholderLineInput } from '@/components/placeholder-line-input';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import type { EmailTemplateFormState } from '@/lib/actions/email-templates';
-import { resolvePlaceholders, SAMPLE_PLACEHOLDER_VALUES } from '@/lib/email-placeholders';
+import { resolvePlaceholders, SAMPLE_PLACEHOLDER_VALUES, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
 import type { EmailTemplate } from '@/lib/types';
 
 interface EmailTemplateFormProps {
@@ -24,7 +24,7 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
   const [body, setBody] = useState(initial?.body ?? '');
 
   const previewSubject = resolvePlaceholders(subject, SAMPLE_PLACEHOLDER_VALUES);
-  const previewBody = resolvePlaceholders(body, SAMPLE_PLACEHOLDER_VALUES);
+  const previewBody = resolvePlaceholders(body, withLinkedWhatsappNumber(SAMPLE_PLACEHOLDER_VALUES));
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-2">
