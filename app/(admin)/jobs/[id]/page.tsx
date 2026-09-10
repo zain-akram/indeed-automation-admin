@@ -8,8 +8,7 @@ import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { CandidateStatus } from '@/components/candidate-status';
 import { EmailInviteDialog } from '@/components/email-invite-dialog';
 import { EmailTrackingIcons } from '@/components/email-status-icons';
-import { ResendSubmissionButton } from '@/components/resend-submission-button';
-import { ViewMessageButton } from '@/components/view-message-button';
+import { SubmissionRowActions } from '@/components/submission-row-actions';
 import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
 import { getEmailTemplates } from '@/lib/actions/email-templates';
 import { getJob } from '@/lib/actions/jobs';
@@ -131,15 +130,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                           />
                         </>
                       ) : null}
-                      {submission.templateKey ? (
-                        <>
-                          <ViewMessageButton
-                            message={submission.renderedMessage}
-                            title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
-                          />
-                          <ResendSubmissionButton submissionId={submission._id} />
-                        </>
-                      ) : null}
+                      <SubmissionRowActions
+                        submissionId={submission._id}
+                        message={submission.renderedMessage}
+                        title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -44,15 +44,12 @@ export function CandidateStatus({
   const template = showTemplate ? templateUsed(submission) : null;
 
   return (
-    <div className="flex flex-col gap-0.5">
-      <span
-        className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap ${className}`}
-        title={template ? `Template: ${template}` : undefined}
-      >
-        <Icon className="size-4 shrink-0" />
-        {label}
-      </span>
-      {template ? <span className="truncate text-[11px] text-muted-foreground">{template}</span> : null}
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap ${className}`}
+      title={template ? `Template: ${template}` : undefined}
+    >
+      <Icon className="size-4 shrink-0" />
+      {label}
+    </span>
   );
 }

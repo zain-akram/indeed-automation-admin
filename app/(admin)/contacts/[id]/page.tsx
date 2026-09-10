@@ -5,9 +5,8 @@ import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { ContactEmailsTable } from '@/components/contact-emails-table';
 import { ContactFiles } from '@/components/contact-files';
 import { NotesCard } from '@/components/notes-card';
-import { ResendSubmissionButton } from '@/components/resend-submission-button';
+import { SubmissionRowActions } from '@/components/submission-row-actions';
 import { SubmissionStatusBadge } from '@/components/submission-status-badge';
-import { ViewMessageButton } from '@/components/view-message-button';
 import { getContact, getContactFiles } from '@/lib/actions/contacts';
 import { getEmailSubmissions, getSubmissions } from '@/lib/actions/submissions';
 
@@ -84,12 +83,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                     <TableCell className="hidden sm:table-cell">
                       {new Date(submission.createdAt).toLocaleString()}
                     </TableCell>
-                    <TableCell className="flex flex-wrap justify-end gap-2 text-right">
-                      <ViewMessageButton
+                    <TableCell className="text-right">
+                      <SubmissionRowActions
+                        submissionId={submission._id}
                         message={submission.renderedMessage}
                         title={`Message for ${submission.job?.title ?? 'deleted job'}`}
                       />
-                      <ResendSubmissionButton submissionId={submission._id} />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { resendSubmissionAction } from '@/lib/actions/submissions';
 
-interface InterviewRowActionsProps {
+interface SubmissionRowActionsProps {
   submissionId: string;
   message?: string;
   title: string;
 }
 
-export function InterviewRowActions({ submissionId, message, title }: InterviewRowActionsProps) {
+export function SubmissionRowActions({ submissionId, message, title }: SubmissionRowActionsProps) {
   const [pending, startTransition] = useTransition();
   const [messageOpen, setMessageOpen] = useState(false);
 

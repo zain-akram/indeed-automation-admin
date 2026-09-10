@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CandidateStatus } from '@/components/candidate-status';
 import { EmailTrackingIcons } from '@/components/email-status-icons';
-import { InterviewRowActions } from '@/components/interview-row-actions';
+import { SubmissionRowActions } from '@/components/submission-row-actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getSubmissions } from '@/lib/actions/submissions';
 
@@ -74,7 +74,7 @@ export default async function InterviewsPage() {
                     {new Date(submission.createdAt).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    <InterviewRowActions
+                    <SubmissionRowActions
                       submissionId={submission._id}
                       message={submission.renderedMessage}
                       title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
