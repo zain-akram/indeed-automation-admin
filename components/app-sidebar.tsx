@@ -1,6 +1,15 @@
 'use client';
 
-import { BriefcaseIcon, CalendarPlusIcon, CalendarIcon, LayoutDashboardIcon, SettingsIcon, UsersIcon } from 'lucide-react';
+import {
+  BriefcaseIcon,
+  CalendarPlusIcon,
+  CalendarIcon,
+  InboxIcon,
+  LayoutDashboardIcon,
+  MailIcon,
+  SettingsIcon,
+  UsersIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -21,6 +30,8 @@ const NAV_ITEMS = [
   { href: '/contacts', label: 'Contacts', icon: UsersIcon },
   { href: '/interviews', label: 'Interviews', icon: CalendarIcon },
   { href: '/interviews/new', label: 'New Interview', icon: CalendarPlusIcon },
+  { href: '/emails', label: 'Emails', icon: InboxIcon },
+  { href: '/email-templates', label: 'Email Templates', icon: MailIcon },
 ];
 
 export function AppSidebar() {

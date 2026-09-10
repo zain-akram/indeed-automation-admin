@@ -12,6 +12,7 @@ export interface Contact {
   firstName: string;
   lastName: string;
   whatsapp: string;
+  email?: string;
   notes?: string;
   createdAt: string;
 }
@@ -27,7 +28,7 @@ export interface TemplateDef {
   category?: string;
 }
 
-export type SubmissionStatus = 'sent' | 'failed';
+export type SubmissionStatus = 'sent' | 'failed' | 'skipped';
 
 export interface Submission {
   _id: string;
@@ -40,6 +41,15 @@ export interface Submission {
   whatsappMessageId?: string;
   errorMessage?: string;
   whatsappAccountId?: string;
+  emailStatus?: SubmissionStatus;
+  emailMessageId?: string;
+  emailError?: string;
+  emailTemplateId?: string;
+  emailDeliveredAt?: string;
+  emailOpenedAt?: string;
+  emailClickedAt?: string;
+  emailBouncedAt?: string;
+  emailComplainedAt?: string;
   createdAt: string;
 }
 
@@ -56,11 +66,43 @@ export interface PopulatedSubmission extends Omit<Submission, 'job' | 'contact' 
   whatsappAccountId?: WhatsappAccount | null;
 }
 
+export interface PopulatedEmailSubmission extends Omit<PopulatedSubmission, 'emailTemplateId'> {
+  emailTemplateId?: EmailTemplate | null;
+}
+
 export interface Setting {
   _id: string;
   defaultInterviewLink: string;
   defaultJobId: string;
   geminiApiKey: string;
+  resendApiKey: string;
+  resendWebhookSecret: string;
+  emailFromAddress: string;
+  emailFromName: string;
+  defaultReplyTo: string;
+  defaultDeliveryChannel: DeliveryChannel;
+}
+
+export type DeliveryChannel = 'whatsapp' | 'email' | 'both';
+
+export interface EmailTemplate {
+  _id: string;
+  label: string;
+  description?: string;
+  subject: string;
+  body: string;
+  replyTo?: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailTemplateStats {
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  failed: number;
 }
 
 export interface WhatsappAccount {

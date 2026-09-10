@@ -22,6 +22,7 @@ export async function createContactAction(_prevState: ContactFormState, formData
   const firstName = String(formData.get('firstName') ?? '').trim();
   const lastName = String(formData.get('lastName') ?? '').trim();
   const whatsapp = String(formData.get('whatsapp') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
   const notes = String(formData.get('notes') ?? '').trim();
 
   if (!firstName || !lastName || !whatsapp) {
@@ -35,7 +36,7 @@ export async function createContactAction(_prevState: ContactFormState, formData
   try {
     await backendFetch('/contacts', {
       method: 'POST',
-      body: JSON.stringify({ firstName, lastName, whatsapp, notes: notes || undefined }),
+      body: JSON.stringify({ firstName, lastName, whatsapp, email: email || undefined, notes: notes || undefined }),
     });
   } catch (error) {
     return { error: error instanceof BackendError ? error.message : 'Failed to create contact' };
@@ -53,6 +54,7 @@ export async function updateContactAction(
   const firstName = String(formData.get('firstName') ?? '').trim();
   const lastName = String(formData.get('lastName') ?? '').trim();
   const whatsapp = String(formData.get('whatsapp') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
   const notes = String(formData.get('notes') ?? '').trim();
 
   if (!firstName || !lastName || !whatsapp) {
@@ -66,7 +68,7 @@ export async function updateContactAction(
   try {
     await backendFetch(`/contacts/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ firstName, lastName, whatsapp, notes: notes || undefined }),
+      body: JSON.stringify({ firstName, lastName, whatsapp, email: email || undefined, notes: notes || undefined }),
     });
   } catch (error) {
     return { error: error instanceof BackendError ? error.message : 'Failed to update contact' };
@@ -134,6 +136,7 @@ export interface AutofillResult {
   firstName?: string;
   lastName?: string;
   whatsapp?: string;
+  email?: string;
   notes?: string;
 }
 

@@ -20,6 +20,12 @@ export async function updateSettingsAction(
   const defaultInterviewLink = String(formData.get('defaultInterviewLink') ?? '').trim();
   const defaultJobId = String(formData.get('defaultJobId') ?? '').trim();
   const geminiApiKey = String(formData.get('geminiApiKey') ?? '').trim();
+  const resendApiKey = String(formData.get('resendApiKey') ?? '').trim();
+  const resendWebhookSecret = String(formData.get('resendWebhookSecret') ?? '').trim();
+  const emailFromAddress = String(formData.get('emailFromAddress') ?? '').trim();
+  const emailFromName = String(formData.get('emailFromName') ?? '').trim();
+  const defaultReplyTo = String(formData.get('defaultReplyTo') ?? '').trim();
+  const defaultDeliveryChannel = String(formData.get('defaultDeliveryChannel') ?? 'whatsapp').trim();
 
   try {
     await backendFetch('/settings', {
@@ -28,6 +34,12 @@ export async function updateSettingsAction(
         defaultInterviewLink,
         defaultJobId,
         geminiApiKey,
+        resendApiKey,
+        resendWebhookSecret,
+        emailFromAddress,
+        emailFromName,
+        defaultReplyTo,
+        defaultDeliveryChannel,
       }),
     });
   } catch (error) {
@@ -37,4 +49,28 @@ export async function updateSettingsAction(
   revalidatePath('/settings');
   revalidatePath('/interviews/new');
   return { success: true };
+}
+
+export interface EmailTestResult {
+  success: boolean;
+  message: string;
+  details?: {
+    domainCount?: number;
+    fromDomain?: string;
+    fromDomainStatus?: string;
+  };
+}
+
+export async function testResendCredentials(resendApiKey: string, emailFromAddress: string): Promise<EmailTestResult> {
+  if (!resendApiKey) {
+    return { success: false, message: 'Enter a Resend API key first' };
+  }
+  try {
+    return await backendFetch<EmailTestResult>('/email/test-credentials', {
+      method: 'POST',
+      body: JSON.stringify({ resendApiKey, emailFromAddress: emailFromAddress || undefined }),
+    });
+  } catch (error) {
+    return { success: false, message: error instanceof BackendError ? error.message : 'Failed to test credentials' };
+  }
 }

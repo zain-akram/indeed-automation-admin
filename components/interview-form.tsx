@@ -34,9 +34,22 @@ import {
   VARIABLE_TYPE_OPTIONS,
   type VariableType,
 } from '@/lib/template-variables';
-import type { Contact, Job, Submission, TemplateDef, WhatsappAccount } from '@/lib/types';
+import type {
+  Contact,
+  DeliveryChannel,
+  EmailTemplate,
+  Job,
+  Submission,
+  TemplateDef,
+  WhatsappAccount,
+} from '@/lib/types';
 
 const NEW_CONTACT_VALUE = '__new__';
+const CHANNEL_OPTIONS: { value: DeliveryChannel; label: string }[] = [
+  { value: 'whatsapp', label: 'WhatsApp only' },
+  { value: 'email', label: 'Email only' },
+  { value: 'both', label: 'WhatsApp + Email' },
+];
 
 function normalizeWhatsapp(value: string): string {
   return value.replace(/\D/g, '');
@@ -57,9 +70,11 @@ interface InterviewFormProps {
   contacts: Contact[];
   whatsappAccounts: WhatsappAccount[];
   templatesByAccount: Record<string, TemplateDef[]>;
+  emailTemplates: EmailTemplate[];
   defaultInterviewLink?: string;
   defaultJobId?: string;
   defaultWhatsappAccountId?: string;
+  defaultDeliveryChannel?: DeliveryChannel;
 }
 
 export function InterviewForm({
@@ -67,9 +82,11 @@ export function InterviewForm({
   contacts,
   whatsappAccounts,
   templatesByAccount,
+  emailTemplates,
   defaultInterviewLink,
   defaultJobId,
   defaultWhatsappAccountId,
+  defaultDeliveryChannel,
 }: InterviewFormProps) {
   const [jobId, setJobId] = useState(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
   const [contactSelection, setContactSelection] = useState('');
@@ -77,6 +94,7 @@ export function InterviewForm({
     firstName: '',
     lastName: '',
     whatsapp: '',
+    email: '',
     notes: '',
   });
   const [whatsappAccountId, setWhatsappAccountId] = useState(
@@ -102,6 +120,10 @@ export function InterviewForm({
   } | null>(null);
   const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
+  const [channel, setChannel] = useState<DeliveryChannel>(defaultDeliveryChannel ?? 'whatsapp');
+  const [emailTemplateId, setEmailTemplateId] = useState(
+    () => emailTemplates.find((t) => t.isDefault)?._id ?? emailTemplates[0]?._id ?? '',
+  );
 
   const isNewContact = contactSelection === NEW_CONTACT_VALUE;
   const selectedContact = contacts.find((c) => c._id === contactSelection);
@@ -118,6 +140,9 @@ export function InterviewForm({
   const selectedTemplate = availableTemplates.find((t) => t.key === templateKey);
   const isPositional = selectedTemplate ? isPositionalTemplate(selectedTemplate.variables) : false;
   const isTemplateApproved = !selectedTemplate?.status || selectedTemplate.status === 'APPROVED';
+  const sendsWhatsapp = channel === 'whatsapp' || channel === 'both';
+  const sendsEmail = channel === 'email' || channel === 'both';
+  const contactEmail = (isNewContact ? newContact.email : (selectedContact?.email ?? '')).trim();
 
   const contactName = isNewContact
     ? `${newContact.firstName} ${newContact.lastName}`.trim()
@@ -188,7 +213,7 @@ export function InterviewForm({
       toast.error('Select a template');
       return null;
     }
-    if (!isTemplateApproved) {
+    if (sendsWhatsapp && !isTemplateApproved) {
       toast.error(
         `"${selectedTemplate.label}" is ${selectedTemplate.status?.toLowerCase()} on WhatsApp and can't be sent yet`,
       );
@@ -211,6 +236,14 @@ export function InterviewForm({
       toast.error('Select a person');
       return null;
     }
+    if (sendsEmail && !contactEmail) {
+      toast.error('Add an email address for this contact to send a follow-up email');
+      return null;
+    }
+    if (sendsEmail && !emailTemplateId) {
+      toast.error('Select an email template, or create one in Email Templates');
+      return null;
+    }
 
     const values: Record<string, string> = {};
     for (const name of selectedTemplate.variables) {
@@ -227,11 +260,14 @@ export function InterviewForm({
       templateKey,
       force,
       whatsappAccountId,
+      channel,
+      emailTemplateId: sendsEmail ? emailTemplateId : undefined,
       ...(isNewContact
         ? {
             firstName: newContact.firstName.trim(),
             lastName: newContact.lastName.trim(),
             whatsapp: newContact.whatsapp.trim(),
+            email: newContact.email.trim() || undefined,
             notes: newContact.notes.trim() || undefined,
           }
         : { contactId: contactSelection }),
@@ -242,7 +278,7 @@ export function InterviewForm({
   function resetForm() {
     setJobId(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
     setContactSelection('');
-    setNewContact({ firstName: '', lastName: '', whatsapp: '', notes: '' });
+    setNewContact({ firstName: '', lastName: '', whatsapp: '', email: '', notes: '' });
     const resetAccountId =
       defaultWhatsappAccountId && whatsappAccounts.some((a) => a._id === defaultWhatsappAccountId)
         ? defaultWhatsappAccountId
@@ -253,6 +289,8 @@ export function InterviewForm({
     const resetDefault = resetAccount?.defaultTemplateKey;
     setTemplateKey(resetDefault && resetTemplates.some((t) => t.key === resetDefault) ? resetDefault : '');
     setPersonSearch('');
+    setChannel(defaultDeliveryChannel ?? 'whatsapp');
+    setEmailTemplateId(emailTemplates.find((t) => t.isDefault)?._id ?? emailTemplates[0]?._id ?? '');
   }
 
   function handleAutofillResult(result: AutofillResult) {
@@ -280,6 +318,7 @@ export function InterviewForm({
       firstName: result.firstName ?? c.firstName,
       lastName: result.lastName ?? c.lastName,
       whatsapp: result.whatsapp ? sanitizeWhatsappInput(result.whatsapp) : c.whatsapp,
+      email: result.email ?? c.email,
       notes: result.notes ? (c.notes ? `${c.notes}\n${result.notes}` : result.notes) : c.notes,
     }));
     toast.success('Fields autofilled — please review before saving');
@@ -459,6 +498,16 @@ export function InterviewForm({
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="candidate@example.com"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact((c) => ({ ...c, email: e.target.value }))}
+                  />
+                </div>
+                <div className="flex flex-col gap-2 sm:col-span-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea
                     id="notes"
@@ -633,7 +682,53 @@ export function InterviewForm({
               })}
         </div>
 
-        <Button onClick={handleSend} disabled={pending || !isTemplateApproved} className="w-fit">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium">Delivery Channel</h2>
+          <Select value={channel} onValueChange={(value) => setChannel((value as DeliveryChannel) ?? 'whatsapp')}>
+            <SelectTrigger className="w-full">
+              <SelectValue>{() => CHANNEL_OPTIONS.find((o) => o.value === channel)?.label}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {CHANNEL_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {sendsEmail && !contactEmail ? (
+            <p className="text-xs text-destructive">
+              This contact has no email address — add one above, or switch to WhatsApp only.
+            </p>
+          ) : null}
+        </div>
+
+        {sendsEmail ? (
+          <div className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">Email Template</h2>
+            {emailTemplates.length === 0 ? (
+              <p className="text-xs text-destructive">
+                No email templates yet — create one in Email Templates before sending.
+              </p>
+            ) : (
+              <Select value={emailTemplateId} onValueChange={(value) => setEmailTemplateId((value as string) ?? '')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>{() => emailTemplates.find((t) => t._id === emailTemplateId)?.label}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {emailTemplates.map((template) => (
+                    <SelectItem key={template._id} value={template._id}>
+                      {template.label}
+                      {template.isDefault ? ' (Default)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        ) : null}
+
+        <Button onClick={handleSend} disabled={pending || (sendsWhatsapp && !isTemplateApproved)} className="w-fit">
           {pending ? 'Sending…' : 'Send Message'}
         </Button>
       </div>
@@ -714,7 +809,7 @@ export function InterviewForm({
           </ul>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={pending || !isTemplateApproved} onClick={handleForceSend}>
+            <AlertDialogAction disabled={pending || (sendsWhatsapp && !isTemplateApproved)} onClick={handleForceSend}>
               Send Anyway
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -27,6 +27,7 @@ export function ContactForm({
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [lastName, setLastName] = useState(initial?.lastName ?? '');
   const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? '');
+  const [email, setEmail] = useState(initial?.email ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   return (
@@ -37,6 +38,7 @@ export function ContactForm({
             if (result.firstName) setFirstName(result.firstName);
             if (result.lastName) setLastName(result.lastName);
             if (result.whatsapp) setWhatsapp(sanitizeWhatsappInput(result.whatsapp));
+            if (result.email) setEmail(result.email);
             if (result.notes) setNotes((n) => (n ? `${n}\n${result.notes}` : result.notes!));
             toast.success('Fields autofilled — please review before saving');
           }}
@@ -79,6 +81,18 @@ export function ContactForm({
           value={whatsapp}
           onChange={(e) => setWhatsapp(sanitizeWhatsappInput(e.target.value))}
           required
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          key={`email-${idSuffix}`}
+          id="email"
+          name="email"
+          type="email"
+          placeholder="candidate@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">

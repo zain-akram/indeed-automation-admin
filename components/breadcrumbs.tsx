@@ -13,6 +13,9 @@ const ROUTE_LABELS: Record<string, string> = {
   '/contacts/new': 'New Contact',
   '/interviews': 'Interviews',
   '/interviews/new': 'New Interview',
+  '/email-templates': 'Email Templates',
+  '/email-templates/new': 'New Email Template',
+  '/emails': 'Emails',
   '/settings': 'Settings',
 };
 
@@ -20,6 +23,7 @@ const PARENT_ENTITY_LABELS: Record<string, string> = {
   jobs: 'Job',
   contacts: 'Contact',
   interviews: 'Interview',
+  'email-templates': 'Email Template',
 };
 
 function labelForSegment(segments: string[], index: number): string {

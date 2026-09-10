@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getContacts } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
-import { getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
+import { getEmailStats, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
 import { getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
 
 const QUICK_ACTIONS = [
@@ -15,18 +15,20 @@ const QUICK_ACTIONS = [
 ];
 
 export default async function DashboardPage() {
-  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount] = await Promise.all([
+  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount, emailStats] = await Promise.all([
     getJobs(),
     getContacts(),
     getSubmissions(),
     getWhatsappAccounts(),
     getStatsByAccount(),
+    getEmailStats(),
   ]);
 
   const stats = [
     { label: 'Total Jobs', count: jobs.length, href: '/jobs' },
     { label: 'Total Contacts', count: contacts.length, href: '/contacts' },
     { label: 'Total Interviews', count: submissions.length, href: '/interviews' },
+    { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails' },
   ];
 
   return (
@@ -42,7 +44,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.href} href={stat.href} className="block">
             <Card className="transition-colors hover:bg-muted/50">
@@ -107,6 +109,29 @@ export default async function DashboardPage() {
               );
             })}
           </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Email Performance</h2>
+        {emailStats.overall.sent + emailStats.overall.failed === 0 ? (
+          <p className="text-sm text-muted-foreground">No follow-up emails sent yet.</p>
+        ) : (
+          <Card>
+            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Sent', count: emailStats.overall.sent },
+                { label: 'Delivered', count: emailStats.overall.delivered },
+                { label: 'Opened', count: emailStats.overall.opened },
+                { label: 'Clicked', count: emailStats.overall.clicked },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-2xl font-semibold">{item.count}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

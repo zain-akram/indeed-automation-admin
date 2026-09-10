@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ResendSubmissionButton } from '@/components/resend-submission-button';
+import { InterviewRowActions } from '@/components/interview-row-actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ViewMessageButton } from '@/components/view-message-button';
 import { getSubmissions } from '@/lib/actions/submissions';
 
 export default async function InterviewsPage() {
@@ -63,12 +62,12 @@ export default async function InterviewsPage() {
                   <TableCell className="hidden sm:table-cell">
                     {new Date(submission.createdAt).toLocaleString()}
                   </TableCell>
-                  <TableCell className="flex flex-wrap justify-end gap-2 text-right">
-                    <ViewMessageButton
+                  <TableCell className="text-right">
+                    <InterviewRowActions
+                      submissionId={submission._id}
                       message={submission.renderedMessage}
                       title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
                     />
-                    <ResendSubmissionButton submissionId={submission._id} />
                   </TableCell>
                 </TableRow>
               ))}

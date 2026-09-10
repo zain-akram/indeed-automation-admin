@@ -1,9 +1,15 @@
 'use client';
 
-import { SearchIcon } from 'lucide-react';
+import { EyeIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Contact } from '@/lib/types';
@@ -62,23 +68,22 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                   <TableCell>{contact.whatsapp}</TableCell>
                   <TableCell className="hidden max-w-xs truncate sm:table-cell">{contact.notes}</TableCell>
                   <TableCell>{contact.interviewCount}</TableCell>
-                  <TableCell className="flex justify-end gap-1 text-right">
-                    <Button
-                      render={<Link href={`/contacts/${contact._id}`} />}
-                      nativeButton={false}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      View
-                    </Button>
-                    <Button
-                      render={<Link href={`/contacts/${contact._id}/edit`} />}
-                      nativeButton={false}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      Edit
-                    </Button>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                        <MoreHorizontalIcon className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem render={<Link href={`/contacts/${contact._id}`} />}>
+                          <EyeIcon />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem render={<Link href={`/contacts/${contact._id}/edit`} />}>
+                          <PencilIcon />
+                          Edit
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
