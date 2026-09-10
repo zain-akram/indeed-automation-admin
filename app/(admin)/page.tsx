@@ -1,6 +1,5 @@
 import { ArrowRightIcon, BriefcaseIcon, CalendarPlusIcon, UserPlusIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IndeedImportDialog } from '@/components/indeed-import-dialog';
@@ -32,6 +31,14 @@ export default async function DashboardPage() {
     { label: 'Total Submissions', count: submissions.length, href: '/interviews' },
     { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails' },
   ];
+
+  const whatsappCap = whatsappAccounts.reduce((sum, a) => sum + (a.messagingLimitCap ?? 0), 0);
+  const whatsappUsed24h = whatsappAccounts.reduce(
+    (sum, a) => sum + (statsByAccount[a._id]?.conversationsUsed24h ?? 0),
+    0,
+  );
+  const whatsappLeft = Math.max(whatsappCap - whatsappUsed24h, 0);
+  const whatsappUsedPercent = whatsappCap ? Math.min((whatsappUsed24h / whatsappCap) * 100, 100) : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,46 +112,42 @@ export default async function DashboardPage() {
               </span>
             </CardContent>
           </Card>
-          {whatsappAccounts.map((account) => {
-            const stats = statsByAccount[account._id];
-            const cap = account.messagingLimitCap ?? null;
-            const used24h = stats?.conversationsUsed24h ?? 0;
-            const left = cap !== null ? Math.max(cap - used24h, 0) : null;
-            const usedPercent = cap ? Math.min((used24h / cap) * 100, 100) : 0;
-
-            return (
-              <Card key={account._id}>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-medium">{account.label}</CardTitle>
-                    {account.isActive ? <Badge>Active</Badge> : null}
-                  </div>
-                  <CardDescription>{account.displayPhoneNumber ?? 'Not tested yet'}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Total interviews sent</span>
-                    <span className="font-medium text-foreground">{stats?.totalSubmissions ?? 0}</span>
-                  </div>
-                  {cap === null ? (
-                    <p className="text-xs text-muted-foreground">Test credentials to see the messaging limit.</p>
-                  ) : (
-                    <>
-                      <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
-                        <div className="h-full bg-primary" style={{ width: `${usedPercent}%` }} />
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Sent (24h): {used24h}</span>
-                        <span>
-                          Left: {left} / {cap}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {whatsappAccounts.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">WhatsApp</CardTitle>
+                <CardDescription>
+                  Shared across {whatsappAccounts.length} account{whatsappAccounts.length === 1 ? '' : 's'} — one
+                  rolling 24h limit
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Total interviews sent</span>
+                  <span className="font-medium text-foreground">
+                    {whatsappAccounts.reduce((sum, a) => sum + (statsByAccount[a._id]?.totalSubmissions ?? 0), 0)}
+                  </span>
+                </div>
+                {whatsappCap === 0 ? (
+                  <p className="text-xs text-muted-foreground">Test credentials to see the messaging limit.</p>
+                ) : (
+                  <>
+                    <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${whatsappUsedPercent}%` }} />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Sent (24h): {whatsappUsed24h}</span>
+                      <span>
+                        Left: {whatsappLeft} / {whatsappCap}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">No WhatsApp accounts configured yet.</p>
+          )}
         </div>
       </div>
     </div>
