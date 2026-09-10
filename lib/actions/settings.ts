@@ -25,6 +25,7 @@ export async function updateSettingsAction(
   const emailFromAddress = String(formData.get('emailFromAddress') ?? '').trim();
   const emailFromName = String(formData.get('emailFromName') ?? '').trim();
   const defaultReplyTo = String(formData.get('defaultReplyTo') ?? '').trim();
+  const defaultEmailWhatsappNumber = String(formData.get('defaultEmailWhatsappNumber') ?? '').trim();
   const defaultDeliveryChannel = String(formData.get('defaultDeliveryChannel') ?? 'whatsapp').trim();
 
   try {
@@ -39,6 +40,7 @@ export async function updateSettingsAction(
         emailFromAddress,
         emailFromName,
         defaultReplyTo,
+        defaultEmailWhatsappNumber,
         defaultDeliveryChannel,
       }),
     });

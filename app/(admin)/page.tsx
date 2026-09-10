@@ -63,6 +63,29 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Email Performance</h2>
+        {emailStats.overall.sent + emailStats.overall.failed === 0 ? (
+          <p className="text-sm text-muted-foreground">No follow-up emails sent yet.</p>
+        ) : (
+          <Card>
+            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Sent', count: emailStats.overall.sent },
+                { label: 'Delivered', count: emailStats.overall.delivered },
+                { label: 'Opened', count: emailStats.overall.opened },
+                { label: 'Clicked', count: emailStats.overall.clicked },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-2xl font-semibold">{item.count}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">WhatsApp Accounts</h2>
         {whatsappAccounts.length === 0 ? (
           <p className="text-sm text-muted-foreground">No WhatsApp accounts configured yet.</p>
@@ -109,29 +132,6 @@ export default async function DashboardPage() {
               );
             })}
           </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Email Performance</h2>
-        {emailStats.overall.sent + emailStats.overall.failed === 0 ? (
-          <p className="text-sm text-muted-foreground">No follow-up emails sent yet.</p>
-        ) : (
-          <Card>
-            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                { label: 'Sent', count: emailStats.overall.sent },
-                { label: 'Delivered', count: emailStats.overall.delivered },
-                { label: 'Opened', count: emailStats.overall.opened },
-                { label: 'Clicked', count: emailStats.overall.clicked },
-              ].map((item) => (
-                <div key={item.label} className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <span className="text-2xl font-semibold">{item.count}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         )}
       </div>
     </div>

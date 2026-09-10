@@ -80,6 +80,7 @@ export interface Setting {
   emailFromAddress: string;
   emailFromName: string;
   defaultReplyTo: string;
+  defaultEmailWhatsappNumber: string;
   defaultDeliveryChannel: DeliveryChannel;
 }
 

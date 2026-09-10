@@ -55,6 +55,7 @@ export function SettingsForm({
   const [emailFromAddress, setEmailFromAddress] = useState(settings.emailFromAddress);
   const [emailFromName, setEmailFromName] = useState(settings.emailFromName);
   const [defaultReplyTo, setDefaultReplyTo] = useState(settings.defaultReplyTo);
+  const [defaultEmailWhatsappNumber, setDefaultEmailWhatsappNumber] = useState(settings.defaultEmailWhatsappNumber);
   const [testingResend, startTestingResend] = useTransition();
   const [resendTestResult, setResendTestResult] = useState<EmailTestResult | null>(null);
 
@@ -261,6 +262,21 @@ export function SettingsForm({
                       onChange={(e) => setDefaultReplyTo(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">Used unless a template sets its own Reply-To.</p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="defaultEmailWhatsappNumber">WhatsApp Number for Emails</Label>
+                    <Input
+                      id="defaultEmailWhatsappNumber"
+                      name="defaultEmailWhatsappNumber"
+                      placeholder="Uses the active WhatsApp account if left blank"
+                      value={defaultEmailWhatsappNumber}
+                      onChange={(e) => setDefaultEmailWhatsappNumber(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Overrides {'{{whatsapp.link}}'} / {'{{whatsapp.number}}'} in emails. Otherwise these always
+                      resolve to whichever WhatsApp account is currently active — never a deactivated one, even if it
+                      was used to send the original message.
+                    </p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="resendWebhookSecret">Webhook Signing Secret</Label>
