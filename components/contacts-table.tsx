@@ -1,6 +1,6 @@
 'use client';
 
-import { EyeIcon, FileTextIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
+import { EyeIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">Notes</TableHead>
                 <TableHead>Total Submissions</TableHead>
-                <TableHead>Resume</TableHead>
+                <TableHead>Indeed</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -77,33 +77,19 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                     <TableCell className="hidden max-w-xs truncate sm:table-cell">{contact.notes}</TableCell>
                     <TableCell>{contact.interviewCount}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        {contact.resumeUrl ? (
-                          <Button
-                            render={<a href={contact.resumeUrl} target="_blank" rel="noopener noreferrer" />}
-                            nativeButton={false}
-                            variant="ghost"
-                            size="icon-sm"
-                            title="View resume"
-                          >
-                            <FileTextIcon className="size-4" />
-                          </Button>
-                        ) : null}
-                        {indeedCandidateUrl ? (
-                          <Button
-                            render={<a href={indeedCandidateUrl} target="_blank" rel="noopener noreferrer" />}
-                            nativeButton={false}
-                            variant="ghost"
-                            size="icon-sm"
-                            title="View on Indeed"
-                          >
-                            <IndeedIcon className="size-4" />
-                          </Button>
-                        ) : null}
-                        {!contact.resumeUrl && !indeedCandidateUrl ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : null}
-                      </div>
+                      {indeedCandidateUrl ? (
+                        <Button
+                          render={<a href={indeedCandidateUrl} target="_blank" rel="noopener noreferrer" />}
+                          nativeButton={false}
+                          variant="ghost"
+                          size="icon-sm"
+                          title="View on Indeed"
+                        >
+                          <IndeedIcon className="size-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

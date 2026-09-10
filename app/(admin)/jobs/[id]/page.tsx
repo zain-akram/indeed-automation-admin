@@ -1,4 +1,3 @@
-import { FileTextIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,17 +105,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                         {formatRelativeTime(submission.appliedAt ?? submission.createdAt)}
                       </TableCell>
                       <TableCell className="flex flex-wrap justify-end gap-1 text-right">
-                        {submission.resumeUrl ? (
-                          <Button
-                            render={<a href={submission.resumeUrl} target="_blank" rel="noopener noreferrer" />}
-                            nativeButton={false}
-                            variant="ghost"
-                            size="icon-sm"
-                            title="View resume"
-                          >
-                            <FileTextIcon className="size-4" />
-                          </Button>
-                        ) : null}
                         {indeedCandidateUrl ? (
                           <Button
                             render={<a href={indeedCandidateUrl} target="_blank" rel="noopener noreferrer" />}
