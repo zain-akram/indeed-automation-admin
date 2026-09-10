@@ -2,7 +2,7 @@ import { CircleCheckIcon, CircleDashedIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DeleteJobButton } from '@/components/delete-job-button';
+import { JobRowActions } from '@/components/job-row-actions';
 import { getJobs } from '@/lib/actions/jobs';
 import { getSubmissions } from '@/lib/actions/submissions';
 
@@ -63,19 +63,8 @@ export default async function JobsPage() {
                     </span>
                   </TableCell>
                   <TableCell>{interviewCounts.get(job._id) ?? 0}</TableCell>
-                  <TableCell className="flex justify-end gap-1 text-right">
-                    <Button render={<Link href={`/jobs/${job._id}`} />} nativeButton={false} variant="ghost" size="sm">
-                      View
-                    </Button>
-                    <Button
-                      render={<Link href={`/jobs/${job._id}/edit`} />}
-                      nativeButton={false}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      Edit
-                    </Button>
-                    <DeleteJobButton jobId={job._id} jobTitle={job.title} />
+                  <TableCell className="text-right">
+                    <JobRowActions jobId={job._id} jobTitle={job.title} />
                   </TableCell>
                 </TableRow>
               ))}
