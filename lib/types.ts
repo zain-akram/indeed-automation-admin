@@ -44,6 +44,7 @@ export interface Submission {
   status: SubmissionStatus;
   whatsappMessageId?: string;
   errorMessage?: string;
+  whatsappAccountId?: string;
   createdAt: string;
 }
 
@@ -51,21 +52,36 @@ export interface CreateSubmissionResult {
   duplicate: boolean;
   existingSubmissions?: Submission[];
   submission?: Submission;
+  error?: string;
 }
 
-export interface PopulatedSubmission extends Omit<Submission, 'job' | 'contact'> {
+export interface PopulatedSubmission extends Omit<Submission, 'job' | 'contact' | 'whatsappAccountId'> {
   job: Job | null;
   contact: Contact | null;
+  whatsappAccountId?: WhatsappAccount | null;
 }
 
 export interface Setting {
   _id: string;
   defaultInterviewLink: string;
   defaultJobId: string;
+  geminiApiKey: string;
+}
+
+export interface WhatsappAccount {
+  _id: string;
+  label: string;
   whatsappBusinessId: string;
   whatsappPhoneNumberId: string;
   whatsappApiToken: string;
-  geminiApiKey: string;
+  isActive: boolean;
+  displayPhoneNumber?: string;
+  verifiedName?: string;
+  defaultTemplateKey?: string;
+  messagingLimitTier?: string;
+  messagingLimitCap?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ContactFile {

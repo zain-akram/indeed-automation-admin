@@ -27,7 +27,7 @@ import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/con
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
 import { isValidWhatsapp, WHATSAPP_ERROR, sanitizeWhatsappInput } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
-import type { Contact, Job, Submission, TemplateDef } from '@/lib/types';
+import type { Contact, Job, Submission, TemplateDef, WhatsappAccount } from '@/lib/types';
 
 const NEW_CONTACT_VALUE = '__new__';
 const INTERVIEW_TIME_VARIABLE = 'interview_time';
@@ -51,11 +51,23 @@ interface InterviewFormProps {
   jobs: Job[];
   contacts: Contact[];
   templates: TemplateDef[];
+  whatsappAccounts: WhatsappAccount[];
+  templatesByAccount: Record<string, TemplateDef[]>;
   defaultInterviewLink?: string;
   defaultJobId?: string;
+  defaultWhatsappAccountId?: string;
 }
 
-export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink, defaultJobId }: InterviewFormProps) {
+export function InterviewForm({
+  jobs,
+  contacts,
+  templates,
+  whatsappAccounts,
+  templatesByAccount,
+  defaultInterviewLink,
+  defaultJobId,
+  defaultWhatsappAccountId,
+}: InterviewFormProps) {
   const [jobId, setJobId] = useState(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
   const [contactSelection, setContactSelection] = useState('');
   const [newContact, setNewContact] = useState({
@@ -64,7 +76,17 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
     whatsapp: '',
     notes: '',
   });
-  const [templateKey, setTemplateKey] = useState('');
+  const [whatsappAccountId, setWhatsappAccountId] = useState(
+    defaultWhatsappAccountId && whatsappAccounts.some((a) => a._id === defaultWhatsappAccountId)
+      ? defaultWhatsappAccountId
+      : (whatsappAccounts[0]?._id ?? ''),
+  );
+  const availableTemplates = templatesByAccount[whatsappAccountId] ?? templates;
+  const [templateKey, setTemplateKey] = useState(() => {
+    const account = whatsappAccounts.find((a) => a._id === whatsappAccountId);
+    const accountDefault = account?.defaultTemplateKey;
+    return accountDefault && availableTemplates.some((t) => t.key === accountDefault) ? accountDefault : '';
+  });
   const [manualVariables, setManualVariables] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
   const [duplicateInfo, setDuplicateInfo] = useState<{
@@ -89,7 +111,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
     );
   }, [contacts, personSearch]);
   const selectedJob = jobs.find((j) => j._id === jobId);
-  const selectedTemplate = templates.find((t) => t.key === templateKey);
+  const selectedTemplate = availableTemplates.find((t) => t.key === templateKey);
 
   const contactName = isNewContact
     ? `${newContact.firstName} ${newContact.lastName}`.trim()
@@ -123,6 +145,10 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
       toast.error('Select a template');
       return null;
     }
+    if (!whatsappAccountId) {
+      toast.error('Select a WhatsApp account');
+      return null;
+    }
     if (isNewContact) {
       if (!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.whatsapp.trim()) {
         toast.error('Fill in first name, last name and WhatsApp number for the new contact');
@@ -149,6 +175,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
       jobId,
       templateKey,
       force,
+      whatsappAccountId,
       ...(isNewContact
         ? {
             firstName: newContact.firstName.trim(),
@@ -165,7 +192,15 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
     setJobId(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
     setContactSelection('');
     setNewContact({ firstName: '', lastName: '', whatsapp: '', notes: '' });
-    setTemplateKey('');
+    const resetAccountId =
+      defaultWhatsappAccountId && whatsappAccounts.some((a) => a._id === defaultWhatsappAccountId)
+        ? defaultWhatsappAccountId
+        : (whatsappAccounts[0]?._id ?? '');
+    setWhatsappAccountId(resetAccountId);
+    const resetTemplates = templatesByAccount[resetAccountId] ?? templates;
+    const resetAccount = whatsappAccounts.find((a) => a._id === resetAccountId);
+    const resetDefault = resetAccount?.defaultTemplateKey;
+    setTemplateKey(resetDefault && resetTemplates.some((t) => t.key === resetDefault) ? resetDefault : '');
     setManualVariables({
       [INTERVIEW_LINK_VARIABLE]: defaultInterviewLink ?? '',
     });
@@ -411,7 +446,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {templates.map((template) => (
+                {availableTemplates.map((template) => (
                   <SelectItem key={template.key} value={template.key}>
                     {template.label}
                   </SelectItem>
@@ -525,20 +560,64 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
         </Button>
       </div>
 
-      <Card className="h-fit lg:sticky lg:top-6">
-        <CardHeader>
-          <CardTitle>Message Preview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {previewText ? (
-            <p className="rounded-none bg-muted/30 p-4 text-sm whitespace-pre-wrap ring-1 ring-foreground/10">
-              {previewText}
+      <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:h-fit">
+        <Card>
+          <CardHeader>
+            <CardTitle>WhatsApp Account</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <Select
+              value={whatsappAccountId}
+              onValueChange={(value) => {
+                const nextAccountId = value ?? '';
+                setWhatsappAccountId(nextAccountId);
+                const nextTemplates = templatesByAccount[nextAccountId] ?? templates;
+                const nextAccount = whatsappAccounts.find((a) => a._id === nextAccountId);
+                const nextDefault = nextAccount?.defaultTemplateKey;
+                if (nextDefault && nextTemplates.some((t) => t.key === nextDefault)) {
+                  setTemplateKey(nextDefault);
+                } else if (!nextTemplates.some((t) => t.key === templateKey)) {
+                  setTemplateKey('');
+                }
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a WhatsApp account">
+                  {() =>
+                    whatsappAccounts.find((a) => a._id === whatsappAccountId)?.label ?? 'Select a WhatsApp account'
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {whatsappAccounts.map((account) => (
+                  <SelectItem key={account._id} value={account._id}>
+                    {account.label}
+                    {account.isActive ? ' (Active)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Defaults to the active account. The message sends from here.
             </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Select a template to see a preview.</p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Message Preview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {previewText ? (
+              <p className="rounded-none bg-muted/30 p-4 text-sm whitespace-pre-wrap ring-1 ring-foreground/10">
+                {previewText}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a template to see a preview.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <AlertDialog open={duplicateInfo !== null} onOpenChange={(open) => !open && setDuplicateInfo(null)}>
         <AlertDialogContent>

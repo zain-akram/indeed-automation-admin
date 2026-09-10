@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { backendFetch } from '@/lib/backend';
 import type { CreateSubmissionResult, PopulatedSubmission } from '@/lib/types';
 
@@ -20,6 +21,16 @@ export async function getUsageLast24Hours(): Promise<UsageLast24Hours> {
   return backendFetch<UsageLast24Hours>('/submissions/usage-24h');
 }
 
+export interface AccountStats {
+  totalSubmissions: number;
+  conversationsUsed24h: number;
+  messagesSent24h: number;
+}
+
+export async function getStatsByAccount(): Promise<Record<string, AccountStats>> {
+  return backendFetch<Record<string, AccountStats>>('/submissions/stats-by-account');
+}
+
 export interface CreateSubmissionInput {
   jobId: string;
   contactId?: string;
@@ -30,6 +41,7 @@ export interface CreateSubmissionInput {
   templateKey: string;
   variables?: Record<string, string>;
   force?: boolean;
+  whatsappAccountId?: string;
 }
 
 export async function createSubmission(input: CreateSubmissionInput): Promise<CreateSubmissionResult> {
@@ -37,4 +49,20 @@ export async function createSubmission(input: CreateSubmissionInput): Promise<Cr
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+export async function resendSubmissionAction(submissionId: string): Promise<CreateSubmissionResult> {
+  const result = await backendFetch<CreateSubmissionResult>(`/submissions/${submissionId}/resend`, {
+    method: 'POST',
+  });
+  revalidatePath('/interviews');
+  revalidatePath(`/contacts`);
+  return result;
+}
+
+export async function deleteSubmissionAction(submissionId: string): Promise<void> {
+  await backendFetch(`/submissions/${submissionId}`, { method: 'DELETE' });
+  revalidatePath('/interviews');
+  revalidatePath('/contacts');
+  revalidatePath('/jobs');
 }

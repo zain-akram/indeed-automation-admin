@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ResendSubmissionButton } from '@/components/resend-submission-button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getSubmissions } from '@/lib/actions/submissions';
 
@@ -27,7 +28,9 @@ export default async function InterviewsPage() {
                 <TableHead>Job</TableHead>
                 <TableHead>Template</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="hidden md:table-cell">Sent Via</TableHead>
                 <TableHead className="hidden sm:table-cell">Sent</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,10 +48,22 @@ export default async function InterviewsPage() {
                   </TableCell>
                   <TableCell>{submission.templateKey}</TableCell>
                   <TableCell>
-                    <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>{submission.status}</Badge>
+                    <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
+                      {submission.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {submission.whatsappAccountId ? (
+                      <span>{submission.whatsappAccountId.label}</span>
+                    ) : (
+                      <span className="text-muted-foreground italic">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {new Date(submission.createdAt).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ResendSubmissionButton submissionId={submission._id} />
                   </TableCell>
                 </TableRow>
               ))}

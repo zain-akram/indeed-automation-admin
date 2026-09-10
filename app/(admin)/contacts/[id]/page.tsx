@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ContactFiles } from '@/components/contact-files';
 import { NotesCard } from '@/components/notes-card';
+import { ResendSubmissionButton } from '@/components/resend-submission-button';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { getContact, getContactFiles } from '@/lib/actions/contacts';
 import { getSubmissions } from '@/lib/actions/submissions';
@@ -46,8 +47,9 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                   <TableHead>Job</TableHead>
                   <TableHead>Template</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Sent Via</TableHead>
                   <TableHead className="hidden sm:table-cell">Sent</TableHead>
-                  <TableHead className="text-right">Message</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -68,14 +70,22 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                         {submission.status}
                       </Badge>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {submission.whatsappAccountId ? (
+                        <span>{submission.whatsappAccountId.label}</span>
+                      ) : (
+                        <span className="text-muted-foreground italic">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {new Date(submission.createdAt).toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="flex flex-wrap justify-end gap-2 text-right">
                       <ViewMessageButton
                         message={submission.renderedMessage}
                         title={`Message for ${submission.job?.title ?? 'deleted job'}`}
                       />
+                      <ResendSubmissionButton submissionId={submission._id} />
                     </TableCell>
                   </TableRow>
                 ))}

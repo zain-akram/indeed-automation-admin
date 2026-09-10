@@ -1,11 +1,12 @@
 import { ArrowRightIcon, BriefcaseIcon, CalendarPlusIcon, UserPlusIcon } from 'lucide-react';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getContacts } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
-import { getSettings, testWhatsappCredentials } from '@/lib/actions/settings';
-import { getSubmissions, getUsageLast24Hours } from '@/lib/actions/submissions';
+import { getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
+import { getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
 
 const QUICK_ACTIONS = [
   { href: '/interviews/new', label: 'New Interview', icon: CalendarPlusIcon },
@@ -14,24 +15,13 @@ const QUICK_ACTIONS = [
 ];
 
 export default async function DashboardPage() {
-  const [jobs, contacts, submissions, settings, usage] = await Promise.all([
+  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount] = await Promise.all([
     getJobs(),
     getContacts(),
     getSubmissions(),
-    getSettings(),
-    getUsageLast24Hours(),
+    getWhatsappAccounts(),
+    getStatsByAccount(),
   ]);
-
-  const connectionStatus =
-    settings.whatsappApiToken && settings.whatsappPhoneNumberId
-      ? await testWhatsappCredentials(settings.whatsappApiToken, settings.whatsappPhoneNumberId)
-      : null;
-
-  const messagingLimitCap = connectionStatus?.details?.messagingLimitCap ?? null;
-  const messagingLimitTier = connectionStatus?.details?.messagingLimitTier;
-  const used = usage.conversationsUsed;
-  const left = messagingLimitCap !== null ? Math.max(messagingLimitCap - used, 0) : null;
-  const usedPercent = messagingLimitCap ? Math.min((used / messagingLimitCap) * 100, 100) : 0;
 
   const stats = [
     { label: 'Total Jobs', count: jobs.length, href: '/jobs' },
@@ -70,35 +60,55 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">Messaging Limit</CardTitle>
-          <CardDescription>Business-initiated conversations in a rolling 24-hour period</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {messagingLimitCap === null ? (
-            <p className="text-sm text-muted-foreground">
-              {connectionStatus?.success === false
-                ? connectionStatus.message
-                : 'Configure WhatsApp credentials in Settings to see this.'}
-            </p>
-          ) : (
-            <>
-              <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-semibold">{messagingLimitCap}</span>
-                <span className="text-xs text-muted-foreground">{messagingLimitTier}</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
-                <div className="h-full bg-primary" style={{ width: `${usedPercent}%` }} />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Sent (24h): {used}</span>
-                <span>Left: {left}</span>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">WhatsApp Accounts</h2>
+        {whatsappAccounts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No WhatsApp accounts configured yet.</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {whatsappAccounts.map((account) => {
+              const stats = statsByAccount[account._id];
+              const cap = account.messagingLimitCap ?? null;
+              const used24h = stats?.conversationsUsed24h ?? 0;
+              const left = cap !== null ? Math.max(cap - used24h, 0) : null;
+              const usedPercent = cap ? Math.min((used24h / cap) * 100, 100) : 0;
+
+              return (
+                <Card key={account._id}>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-medium">{account.label}</CardTitle>
+                      {account.isActive ? <Badge>Active</Badge> : null}
+                    </div>
+                    <CardDescription>{account.displayPhoneNumber ?? 'Not tested yet'}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Total interviews sent</span>
+                      <span className="font-medium text-foreground">{stats?.totalSubmissions ?? 0}</span>
+                    </div>
+                    {cap === null ? (
+                      <p className="text-xs text-muted-foreground">Test credentials to see the messaging limit.</p>
+                    ) : (
+                      <>
+                        <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
+                          <div className="h-full bg-primary" style={{ width: `${usedPercent}%` }} />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Sent (24h): {used24h}</span>
+                          <span>
+                            Left: {left} / {cap}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
