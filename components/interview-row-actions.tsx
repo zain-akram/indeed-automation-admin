@@ -15,7 +15,7 @@ import { resendSubmissionAction } from '@/lib/actions/submissions';
 
 interface InterviewRowActionsProps {
   submissionId: string;
-  message: string;
+  message?: string;
   title: string;
 }
 
@@ -47,10 +47,12 @@ export function InterviewRowActions({ submissionId, message, title }: InterviewR
             <MessageSquareTextIcon />
             View Message
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleResend}>
-            <SendIcon />
-            {pending ? 'Resending…' : 'Resend'}
-          </DropdownMenuItem>
+          {message ? (
+            <DropdownMenuItem onClick={handleResend}>
+              <SendIcon />
+              {pending ? 'Resending…' : 'Resend'}
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -59,7 +61,7 @@ export function InterviewRowActions({ submissionId, message, title }: InterviewR
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription className="text-left text-sm whitespace-pre-wrap text-foreground">
-              {message}
+              {message ?? 'This was an email-only submission — no WhatsApp message was sent.'}
             </DialogDescription>
           </DialogHeader>
         </DialogContent>

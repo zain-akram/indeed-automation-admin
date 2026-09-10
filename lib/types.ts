@@ -34,9 +34,9 @@ export interface Submission {
   _id: string;
   job: string;
   contact: string;
-  templateKey: string;
+  templateKey?: string;
   variables: Record<string, string>;
-  renderedMessage: string;
+  renderedMessage?: string;
   status: SubmissionStatus;
   whatsappMessageId?: string;
   errorMessage?: string;

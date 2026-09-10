@@ -46,7 +46,9 @@ export default async function InterviewsPage() {
                   <TableCell>
                     {submission.job?.title ?? <span className="text-muted-foreground italic">Deleted job</span>}
                   </TableCell>
-                  <TableCell>{submission.templateKey}</TableCell>
+                  <TableCell>
+                    {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
                       {submission.status}

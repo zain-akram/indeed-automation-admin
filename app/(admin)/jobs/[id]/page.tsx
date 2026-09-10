@@ -62,7 +62,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       )}
                     </TableCell>
                     <TableCell>{submission.contact?.whatsapp ?? '—'}</TableCell>
-                    <TableCell>{submission.templateKey}</TableCell>
+                    <TableCell>
+                      {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
                         {submission.status}

@@ -58,7 +58,7 @@ export interface CreateSubmissionInput {
   whatsapp?: string;
   email?: string;
   notes?: string;
-  templateKey: string;
+  templateKey?: string;
   variables?: Record<string, string>;
   force?: boolean;
   whatsappAccountId?: string;

@@ -240,19 +240,21 @@ export function InterviewForm({
       toast.error('Select a job');
       return null;
     }
-    if (!templateKey || !selectedTemplate) {
-      toast.error('Select a template');
-      return null;
-    }
-    if (sendsWhatsapp && !isTemplateApproved) {
-      toast.error(
-        `"${selectedTemplate.label}" is ${selectedTemplate.status?.toLowerCase()} on WhatsApp and can't be sent yet`,
-      );
-      return null;
-    }
-    if (!whatsappAccountId) {
-      toast.error('Select a WhatsApp account');
-      return null;
+    if (sendsWhatsapp) {
+      if (!templateKey || !selectedTemplate) {
+        toast.error('Select a template');
+        return null;
+      }
+      if (!isTemplateApproved) {
+        toast.error(
+          `"${selectedTemplate.label}" is ${selectedTemplate.status?.toLowerCase()} on WhatsApp and can't be sent yet`,
+        );
+        return null;
+      }
+      if (!whatsappAccountId) {
+        toast.error('Select a WhatsApp account');
+        return null;
+      }
     }
     if (isNewContact) {
       if (!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.whatsapp.trim()) {
@@ -277,20 +279,22 @@ export function InterviewForm({
     }
 
     const values: Record<string, string> = {};
-    for (const name of selectedTemplate.variables) {
-      const value = resolveVariableValue(name);
-      if (!value) {
-        toast.error(`Fill in "${humanizeVariableName(name)}"`);
-        return null;
+    if (sendsWhatsapp && selectedTemplate) {
+      for (const name of selectedTemplate.variables) {
+        const value = resolveVariableValue(name);
+        if (!value) {
+          toast.error(`Fill in "${humanizeVariableName(name)}"`);
+          return null;
+        }
+        values[name] = value;
       }
-      values[name] = value;
     }
 
     return {
       jobId,
-      templateKey,
+      templateKey: sendsWhatsapp ? templateKey : undefined,
       force,
-      whatsappAccountId,
+      whatsappAccountId: sendsWhatsapp ? whatsappAccountId : undefined,
       channel,
       emailTemplateId: sendsEmail ? emailTemplateId : undefined,
       ...(isNewContact
@@ -865,11 +869,7 @@ export function InterviewForm({
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-6">
-            {whatsappAccountSection}
-            {templateSection}
-            {emailTemplateSection}
-          </div>
+          {emailTemplateSection}
           {emailPreviewSection}
         </div>
       )}

@@ -66,7 +66,9 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                         <span className="text-muted-foreground italic">Deleted job</span>
                       )}
                     </TableCell>
-                    <TableCell>{submission.templateKey}</TableCell>
+                    <TableCell>
+                      {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
                         {submission.status}
