@@ -10,6 +10,29 @@ export async function getContacts(): Promise<Contact[]> {
   return backendFetch<Contact[]>('/contacts');
 }
 
+export interface ContactPageRow extends Contact {
+  interviewCount: number;
+  resumeUrl?: string;
+}
+
+export interface ContactsPageResult {
+  items: ContactPageRow[];
+  total: number;
+}
+
+export async function getContactsPage(options: {
+  search?: string;
+  limit?: number;
+  skip?: number;
+}): Promise<ContactsPageResult> {
+  const params = new URLSearchParams();
+  if (options.search) params.set('search', options.search);
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.skip) params.set('skip', String(options.skip));
+  const query = params.toString();
+  return backendFetch<ContactsPageResult>(`/contacts/page${query ? `?${query}` : ''}`);
+}
+
 export async function getContact(id: string): Promise<Contact> {
   return backendFetch<Contact>(`/contacts/${id}`);
 }

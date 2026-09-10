@@ -2,7 +2,7 @@
 
 import { EyeIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,26 +13,47 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { IndeedIcon } from '@/components/indeed-icon';
+import { getContactsPage, type ContactPageRow } from '@/lib/actions/contacts';
 import { getIndeedCandidateUrl } from '@/lib/indeed';
-import type { Contact } from '@/lib/types';
 
-interface ContactRow extends Contact {
-  interviewCount: number;
-  resumeUrl?: string;
+interface ContactsTableProps {
+  initialItems: ContactPageRow[];
+  initialTotal: number;
+  pageSize: number;
 }
 
-export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
+export function ContactsTable({ initialItems, initialTotal, pageSize }: ContactsTableProps) {
   const [search, setSearch] = useState('');
+  const [items, setItems] = useState(initialItems);
+  const [total, setTotal] = useState(initialTotal);
+  const [searching, startSearch] = useTransition();
+  const [loadingMore, startLoadMore] = useTransition();
+  const skippedFirstRun = useRef(false);
 
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return contacts;
+  useEffect(() => {
+    if (!skippedFirstRun.current) {
+      skippedFirstRun.current = true;
+      return;
     }
-    return contacts.filter((c) =>
-      `${c.firstName} ${c.lastName} ${c.whatsapp} ${c.notes ?? ''}`.toLowerCase().includes(query),
-    );
-  }, [contacts, search]);
+    const handle = setTimeout(() => {
+      startSearch(async () => {
+        const result = await getContactsPage({ search: search || undefined, limit: pageSize });
+        setItems(result.items);
+        setTotal(result.total);
+      });
+    }, 300);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  function handleLoadMore() {
+    startLoadMore(async () => {
+      const result = await getContactsPage({ search: search || undefined, limit: pageSize, skip: items.length });
+      setItems((prev) => [...prev, ...result.items]);
+    });
+  }
+
+  const hasMore = items.length < total;
 
   return (
     <div className="flex flex-col gap-4">
@@ -41,12 +62,12 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name, number, or notes…"
+          placeholder="Search name, number, email, or notes…"
           className="pl-8"
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">No contacts match your search.</p>
       ) : (
         <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
@@ -61,8 +82,8 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {filtered.map((contact) => {
+            <TableBody className={searching ? 'opacity-50 transition-opacity' : undefined}>
+              {items.map((contact) => {
                 const indeedCandidateUrl = getIndeedCandidateUrl(contact.resumeUrl);
                 return (
                   <TableRow key={contact._id}>
@@ -113,6 +134,12 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
           </Table>
         </div>
       )}
+
+      {hasMore ? (
+        <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="w-fit">
+          {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
+        </Button>
+      ) : null}
     </div>
   );
 }

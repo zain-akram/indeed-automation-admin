@@ -18,6 +18,28 @@ export async function getSubmissions(filters?: { jobId?: string; contactId?: str
   return backendFetch<PopulatedSubmission[]>(`/submissions${query ? `?${query}` : ''}`);
 }
 
+export interface SubmissionsPageResult {
+  items: PopulatedSubmission[];
+  total: number;
+}
+
+export async function getSubmissionsPage(options: {
+  jobId?: string;
+  contactId?: string;
+  search?: string;
+  limit?: number;
+  skip?: number;
+}): Promise<SubmissionsPageResult> {
+  const params = new URLSearchParams();
+  if (options.jobId) params.set('jobId', options.jobId);
+  if (options.contactId) params.set('contactId', options.contactId);
+  if (options.search) params.set('search', options.search);
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.skip) params.set('skip', String(options.skip));
+  const query = params.toString();
+  return backendFetch<SubmissionsPageResult>(`/submissions/page${query ? `?${query}` : ''}`);
+}
+
 export interface UsageLast24Hours {
   conversationsUsed: number;
   messagesSent: number;
