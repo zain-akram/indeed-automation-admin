@@ -36,7 +36,7 @@ export default async function JobsPage() {
                 <TableHead>Title</TableHead>
                 <TableHead className="hidden sm:table-cell">Description</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Total Interviews</TableHead>
+                <TableHead>Total Submissions</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

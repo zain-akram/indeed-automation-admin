@@ -8,14 +8,23 @@ export default async function ContactsPage() {
   const [contacts, submissions] = await Promise.all([getContacts(), getSubmissions()]);
 
   const interviewCounts = new Map<string, number>();
+  const latestResumeUrl = new Map<string, string>();
   for (const submission of submissions) {
     const contactId = submission.contact?._id;
-    if (contactId) {
-      interviewCounts.set(contactId, (interviewCounts.get(contactId) ?? 0) + 1);
+    if (!contactId) {
+      continue;
+    }
+    interviewCounts.set(contactId, (interviewCounts.get(contactId) ?? 0) + 1);
+    if (submission.resumeUrl && !latestResumeUrl.has(contactId)) {
+      latestResumeUrl.set(contactId, submission.resumeUrl);
     }
   }
 
-  const rows = contacts.map((contact) => ({ ...contact, interviewCount: interviewCounts.get(contact._id) ?? 0 }));
+  const rows = contacts.map((contact) => ({
+    ...contact,
+    interviewCount: interviewCounts.get(contact._id) ?? 0,
+    resumeUrl: latestResumeUrl.get(contact._id),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,7 +35,11 @@ export default async function ContactsPage() {
         </Button>
       </div>
 
-      {contacts.length === 0 ? <p className="text-sm text-muted-foreground">No contacts yet.</p> : <ContactsTable contacts={rows} />}
+      {contacts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No contacts yet.</p>
+      ) : (
+        <ContactsTable contacts={rows} />
+      )}
     </div>
   );
 }

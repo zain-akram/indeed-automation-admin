@@ -1,6 +1,6 @@
 'use client';
 
-import { EyeIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
+import { EyeIcon, FileTextIcon, MoreHorizontalIcon, PencilIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { IndeedIcon } from '@/components/indeed-icon';
+import { getIndeedCandidateUrl } from '@/lib/indeed';
 import type { Contact } from '@/lib/types';
 
 interface ContactRow extends Contact {
   interviewCount: number;
+  resumeUrl?: string;
 }
 
 export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
@@ -52,41 +55,76 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>WhatsApp</TableHead>
+                <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">Notes</TableHead>
-                <TableHead>Total Interviews</TableHead>
+                <TableHead>Total Submissions</TableHead>
+                <TableHead>Resume</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((contact) => (
-                <TableRow key={contact._id}>
-                  <TableCell className="font-medium">
-                    <Link href={`/contacts/${contact._id}`} className="hover:underline">
-                      {contact.firstName} {contact.lastName}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{contact.whatsapp}</TableCell>
-                  <TableCell className="hidden max-w-xs truncate sm:table-cell">{contact.notes}</TableCell>
-                  <TableCell>{contact.interviewCount}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-                        <MoreHorizontalIcon className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem render={<Link href={`/contacts/${contact._id}`} />}>
-                          <EyeIcon />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem render={<Link href={`/contacts/${contact._id}/edit`} />}>
-                          <PencilIcon />
-                          Edit
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((contact) => {
+                const indeedCandidateUrl = getIndeedCandidateUrl(contact.resumeUrl);
+                return (
+                  <TableRow key={contact._id}>
+                    <TableCell className="font-medium">
+                      <Link href={`/contacts/${contact._id}`} className="hover:underline">
+                        {contact.firstName} {contact.lastName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{contact.whatsapp}</TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">{contact.email ?? '—'}</TableCell>
+                    <TableCell className="hidden max-w-xs truncate sm:table-cell">{contact.notes}</TableCell>
+                    <TableCell>{contact.interviewCount}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {contact.resumeUrl ? (
+                          <Button
+                            render={<a href={contact.resumeUrl} target="_blank" rel="noopener noreferrer" />}
+                            nativeButton={false}
+                            variant="ghost"
+                            size="icon-sm"
+                            title="View resume"
+                          >
+                            <FileTextIcon className="size-4" />
+                          </Button>
+                        ) : null}
+                        {indeedCandidateUrl ? (
+                          <Button
+                            render={<a href={indeedCandidateUrl} target="_blank" rel="noopener noreferrer" />}
+                            nativeButton={false}
+                            variant="ghost"
+                            size="icon-sm"
+                            title="View on Indeed"
+                          >
+                            <IndeedIcon className="size-4" />
+                          </Button>
+                        ) : null}
+                        {!contact.resumeUrl && !indeedCandidateUrl ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                          <MoreHorizontalIcon className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem render={<Link href={`/contacts/${contact._id}`} />}>
+                            <EyeIcon />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem render={<Link href={`/contacts/${contact._id}/edit`} />}>
+                            <PencilIcon />
+                            Edit
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

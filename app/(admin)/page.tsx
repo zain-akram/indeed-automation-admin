@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   const stats = [
     { label: 'Total Jobs', count: jobs.length, href: '/jobs' },
     { label: 'Total Contacts', count: contacts.length, href: '/contacts' },
-    { label: 'Total Interviews', count: submissions.length, href: '/interviews' },
+    { label: 'Total Submissions', count: submissions.length, href: '/interviews' },
     { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails' },
   ];
 
