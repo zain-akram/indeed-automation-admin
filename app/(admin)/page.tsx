@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndeedImportCard } from '@/components/indeed-import-card';
+import { IndeedImportDialog } from '@/components/indeed-import-dialog';
 import { getContacts } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
 import { getEmailStats, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
@@ -43,9 +43,8 @@ export default async function DashboardPage() {
             {action.label}
           </Button>
         ))}
+        <IndeedImportDialog />
       </div>
-
-      <IndeedImportCard />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
