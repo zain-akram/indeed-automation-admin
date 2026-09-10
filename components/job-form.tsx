@@ -23,7 +23,14 @@ export function JobForm({ action, initial, submitLabel, showActiveToggle }: JobF
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="title">Title</Label>
-        <Input key={`title-${initial?._id ?? 'new'}`} id="title" name="title" defaultValue={initial?.title} required autoFocus />
+        <Input
+          key={`title-${initial?._id ?? 'new'}`}
+          id="title"
+          name="title"
+          defaultValue={initial?.title}
+          required
+          autoFocus
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="description">Description</Label>
@@ -33,6 +40,16 @@ export function JobForm({ action, initial, submitLabel, showActiveToggle }: JobF
           name="description"
           defaultValue={initial?.description}
           rows={4}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="indeedJobId">Indeed Job ID</Label>
+        <Input
+          key={`indeedJobId-${initial?._id ?? 'new'}`}
+          id="indeedJobId"
+          name="indeedJobId"
+          defaultValue={initial?.indeedJobId}
+          placeholder="Optional — used to match this job when importing an Indeed CSV"
         />
       </div>
       {showActiveToggle ? (

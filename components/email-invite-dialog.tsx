@@ -4,12 +4,22 @@ import { MailIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createSubmission } from '@/lib/actions/submissions';
 import { resolvePlaceholders, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
-import type { Contact, EmailTemplate, Job, WhatsappAccount } from '@/lib/types';
+import type { Contact, EmailTemplate, Job, Submission, WhatsappAccount } from '@/lib/types';
 
 interface EmailInviteDialogProps {
   job: Job;
@@ -25,6 +35,7 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
   const [emailTemplateId, setEmailTemplateId] = useState(
     () => emailTemplates.find((t) => t.isDefault)?._id ?? emailTemplates[0]?._id ?? '',
   );
+  const [existingSubmissions, setExistingSubmissions] = useState<Submission[] | null>(null);
 
   const contactName = `${contact.firstName} ${contact.lastName}`.trim();
   const selectedTemplate = emailTemplates.find((t) => t._id === emailTemplateId);
@@ -45,7 +56,13 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
     ? resolvePlaceholders(selectedTemplate.body, withLinkedWhatsappNumber(previewValues))
     : '';
 
-  function handleSend() {
+  function describeSubmission(s: Submission): string {
+    if (s.templateKey) return s.templateKey;
+    if (s.emailTemplateId) return emailTemplates.find((t) => t._id === s.emailTemplateId)?.label ?? 'Email';
+    return 'Email only';
+  }
+
+  function handleSend(force = false) {
     if (!contact.email) {
       toast.error('This contact has no email address on file');
       return;
@@ -60,11 +77,16 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
         contactId: contact._id,
         channel: 'email',
         emailTemplateId,
-        force: true,
+        force,
       });
+      if (result.duplicate) {
+        setExistingSubmissions(result.existingSubmissions ?? []);
+        return;
+      }
       if (result.submission?.emailStatus === 'sent') {
         toast.success(`Email sent to ${contactName}`);
         setOpen(false);
+        setExistingSubmissions(null);
         router.refresh();
       } else {
         toast.error(result.submission?.emailError ?? result.error ?? 'Email failed to send');
@@ -72,8 +94,13 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
     });
   }
 
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    setExistingSubmissions(null);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
           <Button type="button" variant="ghost" size="icon-sm" title="Invite via Email" disabled={!contact.email} />
@@ -129,13 +156,40 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
                 </div>
               ) : null}
 
-              <Button onClick={handleSend} disabled={pending || !emailTemplateId} className="w-fit">
+              <Button onClick={() => handleSend(false)} disabled={pending || !emailTemplateId} className="w-fit">
                 {pending ? 'Sending…' : 'Send Email'}
               </Button>
             </>
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={existingSubmissions !== null} onOpenChange={(open) => !open && setExistingSubmissions(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Already submitted for this job</AlertDialogTitle>
+            <AlertDialogDescription>
+              {contactName} already has {existingSubmissions?.length ?? 0} submission(s) for this job. Send this email
+              anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+            {existingSubmissions?.map((s) => (
+              <li key={s._id}>
+                {describeSubmission(s)} —{' '}
+                {s.status === 'sent' || s.status === 'failed' ? s.status : (s.emailStatus ?? 'skipped')} (
+                {new Date(s.createdAt).toLocaleString()})
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={pending} onClick={() => handleSend(true)}>
+              Send Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

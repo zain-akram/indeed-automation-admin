@@ -3,6 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -12,7 +22,7 @@ import { WhatsappIcon } from '@/components/whatsapp-icon';
 import { createSubmission } from '@/lib/actions/submissions';
 import { renderTemplate } from '@/lib/render-template';
 import { guessVariableType, humanizeVariableName, isPositionalTemplate } from '@/lib/template-variables';
-import type { Contact, Job, TemplateDef, WhatsappAccount } from '@/lib/types';
+import type { Contact, Job, Submission, TemplateDef, WhatsappAccount } from '@/lib/types';
 
 interface WhatsappInviteDialogProps {
   job: Job;
@@ -40,6 +50,7 @@ export function WhatsappInviteDialog({
   const availableTemplates = templatesByAccount[whatsappAccountId] ?? [];
   const [templateKey, setTemplateKey] = useState('');
   const [manualVariables, setManualVariables] = useState<Record<string, string>>({});
+  const [existingSubmissions, setExistingSubmissions] = useState<Submission[] | null>(null);
 
   const contactName = `${contact.firstName} ${contact.lastName}`.trim();
   const selectedTemplate = availableTemplates.find((t) => t.key === templateKey);
@@ -68,6 +79,7 @@ export function WhatsappInviteDialog({
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
+    setExistingSubmissions(null);
     if (next) {
       const account = whatsappAccounts.find((a) => a._id === whatsappAccountId);
       const accountTemplates = templatesByAccount[whatsappAccountId] ?? [];
@@ -87,7 +99,7 @@ export function WhatsappInviteDialog({
     setManualVariables({});
   }
 
-  function handleSend() {
+  function handleSend(force = false) {
     if (!selectedTemplate) {
       toast.error('Select a template');
       return;
@@ -114,11 +126,16 @@ export function WhatsappInviteDialog({
         whatsappAccountId,
         channel: 'whatsapp',
         variables: values,
-        force: true,
+        force,
       });
+      if (result.duplicate) {
+        setExistingSubmissions(result.existingSubmissions ?? []);
+        return;
+      }
       if (result.submission?.status === 'sent') {
         toast.success(`WhatsApp message sent to ${contactName}`);
         setOpen(false);
+        setExistingSubmissions(null);
         router.refresh();
       } else {
         toast.error(result.submission?.errorMessage ?? result.error ?? 'Message failed to send');
@@ -206,11 +223,42 @@ export function WhatsappInviteDialog({
             </div>
           ) : null}
 
-          <Button onClick={handleSend} disabled={pending || !selectedTemplate || !isTemplateApproved} className="w-fit">
+          <Button
+            onClick={() => handleSend(false)}
+            disabled={pending || !selectedTemplate || !isTemplateApproved}
+            className="w-fit"
+          >
             {pending ? 'Sending…' : 'Send WhatsApp Message'}
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={existingSubmissions !== null} onOpenChange={(open) => !open && setExistingSubmissions(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Already submitted for this job</AlertDialogTitle>
+            <AlertDialogDescription>
+              {contactName} already has {existingSubmissions?.length ?? 0} submission(s) for this job. Send this message
+              anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+            {existingSubmissions?.map((s) => (
+              <li key={s._id}>
+                {s.templateKey ?? s.emailTemplateId ?? 'Email only'} —{' '}
+                {s.status === 'sent' || s.status === 'failed' ? s.status : (s.emailStatus ?? 'skipped')} (
+                {new Date(s.createdAt).toLocaleString()})
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={pending || !isTemplateApproved} onClick={() => handleSend(true)}>
+              Send Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
