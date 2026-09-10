@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { IndeedImportDialog } from '@/components/indeed-import-dialog';
 import { getContacts } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
-import { getEmailStats, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
+import { getEmailStats, getEmailUsage, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
 import { getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
 
 const QUICK_ACTIONS = [
@@ -16,13 +16,14 @@ const QUICK_ACTIONS = [
 ];
 
 export default async function DashboardPage() {
-  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount, emailStats] = await Promise.all([
+  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount, emailStats, emailUsage] = await Promise.all([
     getJobs(),
     getContacts(),
     getSubmissions(),
     getWhatsappAccounts(),
     getStatsByAccount(),
     getEmailStats(),
+    getEmailUsage(),
   ]);
 
   const stats = [
@@ -88,53 +89,63 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">WhatsApp Accounts</h2>
-        {whatsappAccounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No WhatsApp accounts configured yet.</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {whatsappAccounts.map((account) => {
-              const stats = statsByAccount[account._id];
-              const cap = account.messagingLimitCap ?? null;
-              const used24h = stats?.conversationsUsed24h ?? 0;
-              const left = cap !== null ? Math.max(cap - used24h, 0) : null;
-              const usedPercent = cap ? Math.min((used24h / cap) * 100, 100) : 0;
+        <h2 className="text-sm font-medium text-muted-foreground">Messaging Accounts</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Email (Resend)</CardTitle>
+              <CardDescription>Emails sent via Resend</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-between text-xs text-muted-foreground">
+              <span>
+                Today: <span className="font-medium text-foreground">{emailUsage.sentToday}</span>
+              </span>
+              <span>
+                This month: <span className="font-medium text-foreground">{emailUsage.sentThisMonth}</span>
+              </span>
+            </CardContent>
+          </Card>
+          {whatsappAccounts.map((account) => {
+            const stats = statsByAccount[account._id];
+            const cap = account.messagingLimitCap ?? null;
+            const used24h = stats?.conversationsUsed24h ?? 0;
+            const left = cap !== null ? Math.max(cap - used24h, 0) : null;
+            const usedPercent = cap ? Math.min((used24h / cap) * 100, 100) : 0;
 
-              return (
-                <Card key={account._id}>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-sm font-medium">{account.label}</CardTitle>
-                      {account.isActive ? <Badge>Active</Badge> : null}
-                    </div>
-                    <CardDescription>{account.displayPhoneNumber ?? 'Not tested yet'}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-3">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Total interviews sent</span>
-                      <span className="font-medium text-foreground">{stats?.totalSubmissions ?? 0}</span>
-                    </div>
-                    {cap === null ? (
-                      <p className="text-xs text-muted-foreground">Test credentials to see the messaging limit.</p>
-                    ) : (
-                      <>
-                        <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
-                          <div className="h-full bg-primary" style={{ width: `${usedPercent}%` }} />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Sent (24h): {used24h}</span>
-                          <span>
-                            Left: {left} / {cap}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+            return (
+              <Card key={account._id}>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium">{account.label}</CardTitle>
+                    {account.isActive ? <Badge>Active</Badge> : null}
+                  </div>
+                  <CardDescription>{account.displayPhoneNumber ?? 'Not tested yet'}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Total interviews sent</span>
+                    <span className="font-medium text-foreground">{stats?.totalSubmissions ?? 0}</span>
+                  </div>
+                  {cap === null ? (
+                    <p className="text-xs text-muted-foreground">Test credentials to see the messaging limit.</p>
+                  ) : (
+                    <>
+                      <div className="h-2 w-full overflow-hidden rounded-none bg-muted">
+                        <div className="h-full bg-primary" style={{ width: `${usedPercent}%` }} />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Sent (24h): {used24h}</span>
+                        <span>
+                          Left: {left} / {cap}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

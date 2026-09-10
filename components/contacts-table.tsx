@@ -56,7 +56,6 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                 <TableHead>Name</TableHead>
                 <TableHead>WhatsApp</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden sm:table-cell">Notes</TableHead>
                 <TableHead>Total Submissions</TableHead>
                 <TableHead>Indeed</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -74,7 +73,6 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                     </TableCell>
                     <TableCell>{contact.whatsapp}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">{contact.email ?? '—'}</TableCell>
-                    <TableCell className="hidden max-w-xs truncate sm:table-cell">{contact.notes}</TableCell>
                     <TableCell>{contact.interviewCount}</TableCell>
                     <TableCell>
                       {indeedCandidateUrl ? (

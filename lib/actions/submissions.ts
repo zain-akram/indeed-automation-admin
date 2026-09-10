@@ -53,6 +53,15 @@ export async function getEmailStats(): Promise<EmailStatsResponse> {
   return backendFetch<EmailStatsResponse>('/submissions/email-stats');
 }
 
+export interface EmailUsage {
+  sentToday: number;
+  sentThisMonth: number;
+}
+
+export async function getEmailUsage(): Promise<EmailUsage> {
+  return backendFetch<EmailUsage>('/submissions/email-usage');
+}
+
 export interface CreateSubmissionInput {
   jobId: string;
   contactId?: string;
