@@ -1,8 +1,9 @@
-import { ArrowRightIcon, BriefcaseIcon, CalendarPlusIcon, UserPlusIcon } from 'lucide-react';
+import { ArrowRightIcon, BriefcaseIcon, CalendarPlusIcon, MailIcon, UserPlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IndeedImportDialog } from '@/components/indeed-import-dialog';
+import { WhatsappIcon } from '@/components/whatsapp-icon';
 import { getContacts } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
 import { getEmailStats, getEmailUsage, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
@@ -100,7 +101,10 @@ export default async function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Email (Resend)</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <MailIcon className="size-4 text-muted-foreground" />
+                Email (Resend)
+              </CardTitle>
               <CardDescription>Emails sent via Resend</CardDescription>
             </CardHeader>
             <CardContent className="flex justify-between text-xs text-muted-foreground">
@@ -115,7 +119,10 @@ export default async function DashboardPage() {
           {whatsappAccounts.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">WhatsApp</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <WhatsappIcon className="size-4 text-muted-foreground" />
+                  WhatsApp
+                </CardTitle>
                 <CardDescription>
                   Shared across {whatsappAccounts.length} account{whatsappAccounts.length === 1 ? '' : 's'} — one
                   rolling 24h limit
