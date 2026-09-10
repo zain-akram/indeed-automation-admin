@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { CandidateStatus } from '@/components/candidate-status';
+import { EmailTrackingIcons } from '@/components/email-status-icons';
 import { InterviewRowActions } from '@/components/interview-row-actions';
-import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getSubmissions } from '@/lib/actions/submissions';
 
@@ -28,6 +29,7 @@ export default async function InterviewsPage() {
                 <TableHead>Job</TableHead>
                 <TableHead>Template</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="hidden lg:table-cell">Email Tracking</TableHead>
                 <TableHead className="hidden md:table-cell">Sent Via</TableHead>
                 <TableHead className="hidden sm:table-cell">Sent</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -47,10 +49,19 @@ export default async function InterviewsPage() {
                     {submission.job?.title ?? <span className="text-muted-foreground italic">Deleted job</span>}
                   </TableCell>
                   <TableCell>
-                    {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
+                    {submission.templateKey ? <div>{submission.templateKey}</div> : null}
+                    {submission.emailTemplateId ? (
+                      <div className="text-xs text-muted-foreground">{submission.emailTemplateId.label}</div>
+                    ) : null}
+                    {!submission.templateKey && !submission.emailTemplateId ? (
+                      <span className="text-muted-foreground italic">—</span>
+                    ) : null}
                   </TableCell>
                   <TableCell>
-                    <SubmissionStatusBadge status={submission.status} />
+                    <CandidateStatus submission={submission} />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <EmailTrackingIcons submission={submission} />
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {submission.whatsappAccountId ? (

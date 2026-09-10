@@ -1,4 +1,3 @@
-import { formatDistanceToNow } from 'date-fns';
 import { FileTextIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { CandidateStatus } from '@/components/candidate-status';
 import { EmailInviteDialog } from '@/components/email-invite-dialog';
+import { EmailTrackingIcons } from '@/components/email-status-icons';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
@@ -15,6 +15,7 @@ import { getEmailTemplates } from '@/lib/actions/email-templates';
 import { getJob } from '@/lib/actions/jobs';
 import { getSubmissions } from '@/lib/actions/submissions';
 import { getActiveWhatsappAccount, getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
+import { formatRelativeTime } from '@/lib/format-relative-time';
 import type { TemplateDef } from '@/lib/types';
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -64,6 +65,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
                   <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Email Tracking</TableHead>
                   <TableHead className="hidden lg:table-cell">Milestone</TableHead>
                   <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -88,6 +90,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     <TableCell>
                       <CandidateStatus submission={submission} />
                     </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <EmailTrackingIcons submission={submission} />
+                    </TableCell>
                     <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {submission.milestone ?? '—'}
                     </TableCell>
@@ -95,9 +100,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell"
                       title={new Date(submission.appliedAt ?? submission.createdAt).toLocaleString()}
                     >
-                      {formatDistanceToNow(new Date(submission.appliedAt ?? submission.createdAt), {
-                        addSuffix: true,
-                      })}
+                      {formatRelativeTime(submission.appliedAt ?? submission.createdAt)}
                     </TableCell>
                     <TableCell className="flex flex-wrap justify-end gap-1 text-right">
                       {submission.resumeUrl ? (

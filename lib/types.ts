@@ -67,15 +67,17 @@ export interface CreateSubmissionResult {
   error?: string;
 }
 
-export interface PopulatedSubmission extends Omit<Submission, 'job' | 'contact' | 'whatsappAccountId'> {
+export interface PopulatedSubmission extends Omit<
+  Submission,
+  'job' | 'contact' | 'whatsappAccountId' | 'emailTemplateId'
+> {
   job: Job | null;
   contact: Contact | null;
   whatsappAccountId?: WhatsappAccount | null;
-}
-
-export interface PopulatedEmailSubmission extends Omit<PopulatedSubmission, 'emailTemplateId'> {
   emailTemplateId?: EmailTemplate | null;
 }
+
+export type PopulatedEmailSubmission = PopulatedSubmission;
 
 export interface Setting {
   _id: string;
