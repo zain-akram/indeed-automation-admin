@@ -1,4 +1,16 @@
-import { ArrowRightIcon, BriefcaseIcon, CalendarPlusIcon, MailIcon, UserPlusIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  BriefcaseIcon,
+  CalendarPlusIcon,
+  ClipboardListIcon,
+  MailCheckIcon,
+  MailIcon,
+  MailOpenIcon,
+  MousePointerClickIcon,
+  SendIcon,
+  UserPlusIcon,
+  UsersIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,10 +39,10 @@ export default async function DashboardPage() {
   ]);
 
   const stats = [
-    { label: 'Total Jobs', count: jobs.length, href: '/jobs' },
-    { label: 'Total Contacts', count: contacts.length, href: '/contacts' },
-    { label: 'Total Submissions', count: submissions.length, href: '/interviews' },
-    { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails' },
+    { label: 'Total Jobs', count: jobs.length, href: '/jobs', icon: BriefcaseIcon },
+    { label: 'Total Contacts', count: contacts.length, href: '/contacts', icon: UsersIcon },
+    { label: 'Total Submissions', count: submissions.length, href: '/interviews', icon: ClipboardListIcon },
+    { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails', icon: MailIcon },
   ];
 
   const whatsappCap = whatsappAccounts.reduce((sum, a) => sum + (a.messagingLimitCap ?? 0), 0);
@@ -60,7 +72,10 @@ export default async function DashboardPage() {
           <Link key={stat.href} href={stat.href} className="block">
             <Card className="transition-colors hover:bg-muted/50">
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <stat.icon className="size-4" />
+                  {stat.label}
+                </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
                 <p className="text-3xl font-semibold">{stat.count}</p>
@@ -81,13 +96,16 @@ export default async function DashboardPage() {
           <Card>
             <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {[
-                { label: 'Sent', count: emailStats.overall.sent },
-                { label: 'Delivered', count: emailStats.overall.delivered },
-                { label: 'Opened', count: emailStats.overall.opened },
-                { label: 'Clicked', count: emailStats.overall.clicked },
+                { label: 'Sent', count: emailStats.overall.sent, icon: SendIcon },
+                { label: 'Delivered', count: emailStats.overall.delivered, icon: MailCheckIcon },
+                { label: 'Opened', count: emailStats.overall.opened, icon: MailOpenIcon },
+                { label: 'Clicked', count: emailStats.overall.clicked, icon: MousePointerClickIcon },
               ].map((item) => (
                 <div key={item.label} className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <item.icon className="size-3.5" />
+                    {item.label}
+                  </span>
                   <span className="text-2xl font-semibold">{item.count}</span>
                 </div>
               ))}
