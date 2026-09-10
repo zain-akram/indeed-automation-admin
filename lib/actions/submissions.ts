@@ -37,8 +37,11 @@ export async function getStatsByAccount(): Promise<Record<string, AccountStats>>
   return backendFetch<Record<string, AccountStats>>('/submissions/stats-by-account');
 }
 
-export async function getEmailSubmissions(): Promise<PopulatedEmailSubmission[]> {
-  return backendFetch<PopulatedEmailSubmission[]>('/submissions/emails');
+export async function getEmailSubmissions(filters?: { contactId?: string }): Promise<PopulatedEmailSubmission[]> {
+  const params = new URLSearchParams();
+  if (filters?.contactId) params.set('contactId', filters.contactId);
+  const query = params.toString();
+  return backendFetch<PopulatedEmailSubmission[]>(`/submissions/emails${query ? `?${query}` : ''}`);
 }
 
 export interface EmailStatsResponse {

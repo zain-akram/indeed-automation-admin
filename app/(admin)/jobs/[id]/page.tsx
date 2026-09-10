@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
+import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { getJob } from '@/lib/actions/jobs';
 import { getSubmissions } from '@/lib/actions/submissions';
@@ -66,9 +67,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
-                        {submission.status}
-                      </Badge>
+                      <SubmissionStatusBadge status={submission.status} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {submission.whatsappAccountId ? (

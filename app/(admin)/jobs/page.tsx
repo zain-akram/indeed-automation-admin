@@ -1,5 +1,5 @@
+import { CircleCheckIcon, CircleDashedIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DeleteJobButton } from '@/components/delete-job-button';
@@ -50,7 +50,17 @@ export default async function JobsPage() {
                   </TableCell>
                   <TableCell className="hidden max-w-xs truncate sm:table-cell">{job.description}</TableCell>
                   <TableCell>
-                    <Badge variant={job.isActive ? 'default' : 'secondary'}>{job.isActive ? 'Active' : 'Inactive'}</Badge>
+                    <span
+                      title={job.isActive ? 'Active' : 'Inactive'}
+                      aria-label={job.isActive ? 'Active' : 'Inactive'}
+                      className="inline-flex"
+                    >
+                      {job.isActive ? (
+                        <CircleCheckIcon className="size-4 text-foreground" />
+                      ) : (
+                        <CircleDashedIcon className="size-4 text-muted-foreground" />
+                      )}
+                    </span>
                   </TableCell>
                   <TableCell>{interviewCounts.get(job._id) ?? 0}</TableCell>
                   <TableCell className="flex justify-end gap-1 text-right">

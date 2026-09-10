@@ -3,25 +3,11 @@
 import { format } from 'date-fns';
 import { SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EmailPreviewButton } from '@/components/email-preview-button';
+import { EmailStatusIcons } from '@/components/email-status-icons';
 import type { PopulatedEmailSubmission } from '@/lib/types';
-
-function EmailStatusBadges({ submission }: { submission: PopulatedEmailSubmission }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      <Badge variant={submission.emailStatus === 'sent' ? 'default' : 'destructive'}>
-        {submission.emailStatus === 'sent' ? 'Sent' : 'Failed'}
-      </Badge>
-      {submission.emailDeliveredAt ? <Badge variant="outline">Delivered</Badge> : null}
-      {submission.emailOpenedAt ? <Badge variant="outline">Opened</Badge> : null}
-      {submission.emailClickedAt ? <Badge variant="outline">Clicked</Badge> : null}
-      {submission.emailBouncedAt ? <Badge variant="destructive">Bounced</Badge> : null}
-    </div>
-  );
-}
 
 export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmission[] }) {
   const [search, setSearch] = useState('');
@@ -91,7 +77,7 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                     {submission.emailTemplateId?.label ?? '—'}
                   </TableCell>
                   <TableCell>
-                    <EmailStatusBadges submission={submission} />
+                    <EmailStatusIcons submission={submission} />
                   </TableCell>
                   <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
                     {format(new Date(submission.createdAt), 'MMM d, yyyy h:mm a')}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InterviewRowActions } from '@/components/interview-row-actions';
+import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getSubmissions } from '@/lib/actions/submissions';
 
@@ -50,9 +50,7 @@ export default async function InterviewsPage() {
                     {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
-                      {submission.status}
-                    </Badge>
+                    <SubmissionStatusBadge status={submission.status} />
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {submission.whatsappAccountId ? (

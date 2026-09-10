@@ -1,20 +1,22 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
+import { ContactEmailsTable } from '@/components/contact-emails-table';
 import { ContactFiles } from '@/components/contact-files';
 import { NotesCard } from '@/components/notes-card';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
+import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { getContact, getContactFiles } from '@/lib/actions/contacts';
-import { getSubmissions } from '@/lib/actions/submissions';
+import { getEmailSubmissions, getSubmissions } from '@/lib/actions/submissions';
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [contact, submissions, files] = await Promise.all([
+  const [contact, submissions, emailSubmissions, files] = await Promise.all([
     getContact(id),
     getSubmissions({ contactId: id }),
+    getEmailSubmissions({ contactId: id }),
     getContactFiles(id),
   ]);
 
@@ -70,9 +72,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                       {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={submission.status === 'sent' ? 'default' : 'destructive'}>
-                        {submission.status}
-                      </Badge>
+                      <SubmissionStatusBadge status={submission.status} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {submission.whatsappAccountId ? (
@@ -97,6 +97,11 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             </Table>
           </div>
         )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Emails Sent</h2>
+        <ContactEmailsTable submissions={emailSubmissions} />
       </div>
 
       {contact.notes ? <NotesCard notes={contact.notes} /> : null}
