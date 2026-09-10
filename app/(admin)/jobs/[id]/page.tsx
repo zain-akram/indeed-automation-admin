@@ -1,3 +1,4 @@
+import { formatDistanceToNow } from 'date-fns';
 import { FileTextIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -5,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
+import { CandidateStatus } from '@/components/candidate-status';
 import { EmailInviteDialog } from '@/components/email-invite-dialog';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
-import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
 import { getEmailTemplates } from '@/lib/actions/email-templates';
@@ -51,9 +52,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Candidates for this Job</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">Submissions for this Job</h2>
         {submissions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No candidates for this job yet.</p>
+          <p className="text-sm text-muted-foreground">No submissions for this job yet.</p>
         ) : (
           <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
             <Table>
@@ -61,6 +62,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 <TableRow>
                   <TableHead>Person</TableHead>
                   <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden lg:table-cell">Milestone</TableHead>
                   <TableHead className="hidden sm:table-cell">Date</TableHead>
@@ -80,14 +82,22 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{submission.contact?.whatsapp ?? '—'}</TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {submission.contact?.email ?? '—'}
+                    </TableCell>
                     <TableCell>
-                      <SubmissionStatusBadge status={submission.status} />
+                      <CandidateStatus submission={submission} />
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {submission.milestone ?? '—'}
                     </TableCell>
-                    <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
-                      {new Date(submission.appliedAt ?? submission.createdAt).toLocaleDateString()}
+                    <TableCell
+                      className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell"
+                      title={new Date(submission.appliedAt ?? submission.createdAt).toLocaleString()}
+                    >
+                      {formatDistanceToNow(new Date(submission.appliedAt ?? submission.createdAt), {
+                        addSuffix: true,
+                      })}
                     </TableCell>
                     <TableCell className="flex flex-wrap justify-end gap-1 text-right">
                       {submission.resumeUrl ? (
