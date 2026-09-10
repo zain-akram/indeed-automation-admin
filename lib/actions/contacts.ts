@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { backendFetch, BackendError } from '@/lib/backend';
-import { isValidPkWhatsapp, PK_WHATSAPP_ERROR } from '@/lib/phone';
+import { isValidWhatsapp, WHATSAPP_ERROR } from '@/lib/phone';
 import type { Contact, ContactFile } from '@/lib/types';
 
 export async function getContacts(): Promise<Contact[]> {
@@ -28,8 +28,8 @@ export async function createContactAction(_prevState: ContactFormState, formData
     return { error: 'First name, last name and WhatsApp number are required' };
   }
 
-  if (!isValidPkWhatsapp(whatsapp)) {
-    return { error: PK_WHATSAPP_ERROR };
+  if (!isValidWhatsapp(whatsapp)) {
+    return { error: WHATSAPP_ERROR };
   }
 
   try {
@@ -59,8 +59,8 @@ export async function updateContactAction(
     return { error: 'First name, last name and WhatsApp number are required' };
   }
 
-  if (!isValidPkWhatsapp(whatsapp)) {
-    return { error: PK_WHATSAPP_ERROR };
+  if (!isValidWhatsapp(whatsapp)) {
+    return { error: WHATSAPP_ERROR };
   }
 
   try {

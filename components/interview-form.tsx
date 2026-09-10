@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
-import { isValidPkWhatsapp, PK_WHATSAPP_ERROR, sanitizePkWhatsappInput } from '@/lib/phone';
+import { isValidWhatsapp, WHATSAPP_ERROR, sanitizeWhatsappInput } from '@/lib/phone';
 import { renderTemplate } from '@/lib/render-template';
 import type { Contact, Job, Submission, TemplateDef } from '@/lib/types';
 
@@ -34,7 +34,7 @@ const INTERVIEW_TIME_VARIABLE = 'interview_time';
 const INTERVIEW_LINK_VARIABLE = 'linterview_ink';
 
 function normalizeWhatsapp(value: string): string {
-  return value.trim().replace(/^\+/, '');
+  return value.replace(/\D/g, '');
 }
 
 function formatInterviewDateTime(date: Date, timeOfDay: string): string {
@@ -128,8 +128,8 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
         toast.error('Fill in first name, last name and WhatsApp number for the new contact');
         return null;
       }
-      if (!isValidPkWhatsapp(newContact.whatsapp)) {
-        toast.error(PK_WHATSAPP_ERROR);
+      if (!isValidWhatsapp(newContact.whatsapp)) {
+        toast.error(WHATSAPP_ERROR);
         return null;
       }
     } else if (!contactSelection) {
@@ -198,7 +198,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
     setNewContact((c) => ({
       firstName: result.firstName ?? c.firstName,
       lastName: result.lastName ?? c.lastName,
-      whatsapp: result.whatsapp ? sanitizePkWhatsappInput(result.whatsapp) : c.whatsapp,
+      whatsapp: result.whatsapp ? sanitizeWhatsappInput(result.whatsapp) : c.whatsapp,
       notes: result.notes ? (c.notes ? `${c.notes}\n${result.notes}` : result.notes) : c.notes,
     }));
     toast.success('Fields autofilled — please review before saving');
@@ -379,7 +379,7 @@ export function InterviewForm({ jobs, contacts, templates, defaultInterviewLink,
                       onChange={(e) =>
                         setNewContact((c) => ({
                           ...c,
-                          whatsapp: sanitizePkWhatsappInput(e.target.value),
+                          whatsapp: sanitizeWhatsappInput(e.target.value),
                         }))
                       }
                     />
