@@ -3,6 +3,7 @@ export interface Job {
   title: string;
   description?: string;
   isActive: boolean;
+  indeedJobId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +14,7 @@ export interface Contact {
   lastName: string;
   whatsapp: string;
   email?: string;
+  location?: string;
   notes?: string;
   createdAt: string;
 }
@@ -50,6 +52,11 @@ export interface Submission {
   emailClickedAt?: string;
   emailBouncedAt?: string;
   emailComplainedAt?: string;
+  indeedSubmissionUuid?: string;
+  resumeUrl?: string;
+  appliedAt?: string;
+  milestone?: string;
+  interestLevel?: string;
   createdAt: string;
 }
 

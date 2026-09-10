@@ -1,17 +1,35 @@
+import { FileTextIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
+import { EmailInviteDialog } from '@/components/email-invite-dialog';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
 import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { ViewMessageButton } from '@/components/view-message-button';
+import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
+import { getEmailTemplates } from '@/lib/actions/email-templates';
 import { getJob } from '@/lib/actions/jobs';
 import { getSubmissions } from '@/lib/actions/submissions';
+import { getActiveWhatsappAccount, getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
+import type { TemplateDef } from '@/lib/types';
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [job, submissions] = await Promise.all([getJob(id), getSubmissions({ jobId: id })]);
+  const [job, submissions, whatsappAccounts, activeAccount, emailTemplates] = await Promise.all([
+    getJob(id),
+    getSubmissions({ jobId: id }),
+    getWhatsappAccounts(),
+    getActiveWhatsappAccount(),
+    getEmailTemplates(),
+  ]);
+
+  const templatesByAccount: Record<string, TemplateDef[]> = {};
+  for (const account of whatsappAccounts) {
+    templatesByAccount[account._id] = account.templates ?? [];
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,20 +51,19 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Interviews for this Job</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">Candidates for this Job</h2>
         {submissions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No interview invites sent for this job yet.</p>
+          <p className="text-sm text-muted-foreground">No candidates for this job yet.</p>
         ) : (
           <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Person</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Template</TableHead>
+                  <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Sent Via</TableHead>
-                  <TableHead className="hidden sm:table-cell">Sent</TableHead>
+                  <TableHead className="hidden lg:table-cell">Milestone</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -62,29 +79,54 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                         <span className="text-muted-foreground italic">Deleted contact</span>
                       )}
                     </TableCell>
-                    <TableCell>{submission.contact?.whatsapp ?? '—'}</TableCell>
-                    <TableCell>
-                      {submission.templateKey ?? <span className="text-muted-foreground italic">Email only</span>}
-                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{submission.contact?.whatsapp ?? '—'}</TableCell>
                     <TableCell>
                       <SubmissionStatusBadge status={submission.status} />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {submission.whatsappAccountId ? (
-                        <span>{submission.whatsappAccountId.label}</span>
-                      ) : (
-                        <span className="text-muted-foreground italic">—</span>
-                      )}
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
+                      {submission.milestone ?? '—'}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {new Date(submission.createdAt).toLocaleString()}
+                    <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
+                      {new Date(submission.appliedAt ?? submission.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="flex flex-wrap justify-end gap-2 text-right">
-                      <ViewMessageButton
-                        message={submission.renderedMessage}
-                        title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
-                      />
-                      <ResendSubmissionButton submissionId={submission._id} />
+                    <TableCell className="flex flex-wrap justify-end gap-1 text-right">
+                      {submission.resumeUrl ? (
+                        <Button
+                          render={<a href={submission.resumeUrl} target="_blank" rel="noopener noreferrer" />}
+                          nativeButton={false}
+                          variant="ghost"
+                          size="icon-sm"
+                          title="View resume"
+                        >
+                          <FileTextIcon className="size-4" />
+                        </Button>
+                      ) : null}
+                      {submission.contact ? (
+                        <>
+                          <WhatsappInviteDialog
+                            job={job}
+                            contact={submission.contact}
+                            whatsappAccounts={whatsappAccounts}
+                            templatesByAccount={templatesByAccount}
+                            defaultWhatsappAccountId={activeAccount?._id}
+                          />
+                          <EmailInviteDialog
+                            job={job}
+                            contact={submission.contact}
+                            emailTemplates={emailTemplates}
+                            whatsappAccounts={whatsappAccounts}
+                          />
+                        </>
+                      ) : null}
+                      {submission.templateKey ? (
+                        <>
+                          <ViewMessageButton
+                            message={submission.renderedMessage}
+                            title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
+                          />
+                          <ResendSubmissionButton submissionId={submission._id} />
+                        </>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))}
