@@ -16,20 +16,15 @@ export interface Contact {
   createdAt: string;
 }
 
-export type TemplateVariableSource = 'contact' | 'job' | 'manual';
-
-export interface TemplateVariableDef {
-  name: string;
-  label: string;
-  source: TemplateVariableSource;
-}
-
 export interface TemplateDef {
   key: string;
   label: string;
   language: string;
   body: string;
-  variables: TemplateVariableDef[];
+  /** Raw parameter names/positions from the approved WhatsApp template body, e.g. ["name", "role_name"] or ["1", "2"]. */
+  variables: string[];
+  status?: string;
+  category?: string;
 }
 
 export type SubmissionStatus = 'sent' | 'failed';
@@ -80,6 +75,8 @@ export interface WhatsappAccount {
   defaultTemplateKey?: string;
   messagingLimitTier?: string;
   messagingLimitCap?: number;
+  templates?: TemplateDef[];
+  templatesSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

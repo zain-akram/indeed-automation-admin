@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { backendFetch, BackendError } from '@/lib/backend';
-import type { WhatsappAccount } from '@/lib/types';
+import type { TemplateDef, WhatsappAccount } from '@/lib/types';
 
 export interface WhatsappTestResult {
   success: boolean;
@@ -18,13 +18,7 @@ export interface WhatsappTestResult {
   };
 }
 
-export interface MetaTemplate {
-  name: string;
-  language: string;
-  status: string;
-  category?: string;
-  bodyText?: string;
-}
+export type MetaTemplate = TemplateDef;
 
 export interface TemplateSyncResult {
   success: boolean;
@@ -48,6 +42,7 @@ export async function getActiveWhatsappAccount(): Promise<WhatsappAccount | null
 function revalidateWhatsappAccounts() {
   revalidatePath('/settings');
   revalidatePath('/');
+  revalidatePath('/interviews/new');
 }
 
 export async function createWhatsappAccountAction(
@@ -140,7 +135,9 @@ export async function testWhatsappAccountById(accountId: string): Promise<Whatsa
 
 export async function syncWhatsappAccountTemplates(accountId: string): Promise<TemplateSyncResult> {
   try {
-    return await backendFetch<TemplateSyncResult>(`/whatsapp-accounts/${accountId}/sync-templates`);
+    const result = await backendFetch<TemplateSyncResult>(`/whatsapp-accounts/${accountId}/sync-templates`);
+    revalidateWhatsappAccounts();
+    return result;
   } catch (error) {
     return { success: false, message: error instanceof BackendError ? error.message : 'Failed to sync templates' };
   }

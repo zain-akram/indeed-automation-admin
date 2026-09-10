@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WhatsappAccountsManager } from '@/components/whatsapp-accounts-manager';
 import { updateSettingsAction, type SettingsFormState } from '@/lib/actions/settings';
-import type { TemplateSyncResult, WhatsappTestResult } from '@/lib/actions/whatsapp-accounts';
-import type { Job, Setting, TemplateDef, WhatsappAccount } from '@/lib/types';
+import type { WhatsappTestResult } from '@/lib/actions/whatsapp-accounts';
+import type { Job, Setting, WhatsappAccount } from '@/lib/types';
 
 const initialState: SettingsFormState = {};
 const NO_DEFAULT_JOB_VALUE = '__none__';
@@ -20,16 +20,12 @@ export function SettingsForm({
   settings,
   jobs,
   whatsappAccounts,
-  templates,
   initialTestResults,
-  initialTemplateSyncResults,
 }: {
   settings: Setting;
   jobs: Job[];
   whatsappAccounts: WhatsappAccount[];
-  templates: TemplateDef[];
   initialTestResults: Record<string, WhatsappTestResult | null>;
-  initialTemplateSyncResults: Record<string, TemplateSyncResult | null>;
 }) {
   const [state, formAction, pending] = useActionState(updateSettingsAction, initialState);
   const [defaultJobId, setDefaultJobId] = useState(settings.defaultJobId);
@@ -138,12 +134,7 @@ export function SettingsForm({
             Each account can have its own approved templates. The account marked Active is used to send messages.
           </p>
         </div>
-        <WhatsappAccountsManager
-          accounts={whatsappAccounts}
-          templates={templates}
-          initialTestResults={initialTestResults}
-          initialTemplateSyncResults={initialTemplateSyncResults}
-        />
+        <WhatsappAccountsManager accounts={whatsappAccounts} initialTestResults={initialTestResults} />
       </div>
     </div>
   );

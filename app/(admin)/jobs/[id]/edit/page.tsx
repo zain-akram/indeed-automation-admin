@@ -1,3 +1,4 @@
+import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { JobForm } from '@/components/job-form';
 import { getJob, updateJobAction } from '@/lib/actions/jobs';
 
@@ -7,6 +8,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="flex flex-col gap-6">
+      <BreadcrumbLabel path={`/jobs/${id}`} label={job.title} />
       <h1 className="text-xl font-semibold">Edit Job Post</h1>
       <JobForm action={updateJobAction.bind(null, id)} initial={job} submitLabel="Save Changes" showActiveToggle />
     </div>

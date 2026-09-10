@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
 import { ViewMessageButton } from '@/components/view-message-button';
 import { getJob } from '@/lib/actions/jobs';
@@ -13,6 +14,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex flex-col gap-6">
+      <BreadcrumbLabel path={`/jobs/${id}`} label={job.title} />
       <div>
         <h1 className="text-xl font-semibold">{job.title}</h1>
         <Badge variant={job.isActive ? 'default' : 'secondary'}>{job.isActive ? 'Active' : 'Inactive'}</Badge>

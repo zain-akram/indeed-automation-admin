@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { WhatsappIcon } from '@/components/whatsapp-icon';
 import {
   activateWhatsappAccountAction,
   createWhatsappAccountAction,
@@ -40,34 +41,34 @@ function templateStatusVariant(status?: string): 'default' | 'secondary' | 'dest
   return 'secondary';
 }
 
-function TemplateSyncPanel({ result, templates }: { result: TemplateSyncResult | null; templates: TemplateDef[] }) {
-  if (!result) {
-    return null;
+function TemplateListPanel({ templates, errorMessage }: { templates: TemplateDef[]; errorMessage?: string }) {
+  if (errorMessage) {
+    return <p className="text-xs text-destructive">{errorMessage}</p>;
   }
-  if (!result.success) {
-    return <p className="text-xs text-destructive">{result.message}</p>;
-  }
-  if (!result.templates || result.templates.length === 0) {
-    return <p className="text-xs text-muted-foreground">No templates found on this WhatsApp Business Account.</p>;
+  if (templates.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        No templates synced yet. Click &quot;Sync Templates&quot; to fetch the real, approved templates from this
+        WhatsApp Business Account.
+      </p>
+    );
   }
   return (
     <div className="flex flex-col gap-2">
-      {result.templates.map((t) => (
+      {templates.map((t) => (
         <div
-          key={`${t.name}-${t.language}`}
+          key={`${t.key}-${t.language}`}
           className="flex flex-wrap items-center justify-between gap-2 rounded-none bg-muted/30 p-3 text-xs ring-1 ring-foreground/10"
         >
           <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-foreground">
-              {templates.find((td) => td.key === t.name)?.label ?? t.name}
-            </span>
+            <span className="font-medium text-foreground">{t.label}</span>
             <span className="text-muted-foreground">
               language: {t.language}
               {t.category ? ` · category: ${t.category}` : ''}
             </span>
-            {t.bodyText ? <span className="mt-1 whitespace-pre-wrap text-foreground">{t.bodyText}</span> : null}
+            {t.body ? <span className="mt-1 whitespace-pre-wrap text-foreground">{t.body}</span> : null}
           </div>
-          <Badge variant={templateStatusVariant(t.status)}>{t.status}</Badge>
+          {t.status ? <Badge variant={templateStatusVariant(t.status)}>{t.status}</Badge> : null}
         </div>
       ))}
     </div>
@@ -190,15 +191,11 @@ function CredentialFields({
 
 function WhatsappAccountDetails({
   account,
-  templates,
   initialTestResult,
-  initialTemplateSync,
   onClose,
 }: {
   account: WhatsappAccount;
-  templates: TemplateDef[];
   initialTestResult: WhatsappTestResult | null;
-  initialTemplateSync: TemplateSyncResult | null;
   onClose: () => void;
 }) {
   const [label, setLabel] = useState(account.label);
@@ -214,7 +211,7 @@ function WhatsappAccountDetails({
   const [testing, startTest] = useTransition();
   const [syncing, startSync] = useTransition();
   const [testResult, setTestResult] = useState<WhatsappTestResult | null>(initialTestResult);
-  const [templateSync, setTemplateSync] = useState<TemplateSyncResult | null>(initialTemplateSync);
+  const [templateSync, setTemplateSync] = useState<TemplateSyncResult | null>(null);
 
   function markDirty<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -284,12 +281,10 @@ function WhatsappAccountDetails({
     });
   }
 
-  // Only offer templates that actually exist on this account's WhatsApp Business Account — the
-  // hardcoded template list is shared across accounts, but each account approves its own subset.
-  const availableTemplates =
-    templateSync?.success && templateSync.templates
-      ? templates.filter((t) => templateSync.templates!.some((mt) => mt.name === t.key))
-      : templates;
+  // Prefer a just-synced live result; otherwise fall back to the templates cached on this
+  // account from the last sync (real name, body, status and category from the WhatsApp API).
+  const availableTemplates = templateSync?.success ? (templateSync.templates ?? []) : (account.templates ?? []);
+  const syncErrorMessage = templateSync && !templateSync.success ? templateSync.message : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -337,8 +332,8 @@ function WhatsappAccountDetails({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          {templateSync?.success
-            ? 'Only templates approved on this account are shown. Pre-selected on the New Interview form when this is active.'
+          {availableTemplates.length > 0
+            ? 'Only templates synced from this account are shown. Pre-selected on the New Interview form when this is active.'
             : 'Sync Templates to see which ones are available on this account.'}
         </p>
       </div>
@@ -359,7 +354,17 @@ function WhatsappAccountDetails({
       </div>
 
       <TestResultPanel result={testResult} />
-      <TemplateSyncPanel result={templateSync} templates={templates} />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <Label>Available Templates</Label>
+          {account.templatesSyncedAt && !templateSync ? (
+            <span className="text-xs text-muted-foreground">
+              Synced {new Date(account.templatesSyncedAt).toLocaleString()}
+            </span>
+          ) : null}
+        </div>
+        <TemplateListPanel templates={availableTemplates} errorMessage={syncErrorMessage} />
+      </div>
 
       <div className="flex justify-end border-t border-foreground/10 pt-4">
         <Button
@@ -394,14 +399,10 @@ function WhatsappAccountDetails({
 
 function WhatsappAccountListItem({
   account,
-  templates,
   initialTestResult,
-  initialTemplateSync,
 }: {
   account: WhatsappAccount;
-  templates: TemplateDef[];
   initialTestResult: WhatsappTestResult | null;
-  initialTemplateSync: TemplateSyncResult | null;
 }) {
   const [open, setOpen] = useState(false);
   const [activating, startActivating] = useTransition();
@@ -416,6 +417,7 @@ function WhatsappAccountListItem({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-none bg-muted/20 p-3 ring-1 ring-foreground/10">
       <div className="flex items-center gap-2">
+        <WhatsappIcon className="size-4 shrink-0 text-muted-foreground" />
         <span className="font-medium">{account.label}</span>
         {account.isActive ? <Badge>Active</Badge> : null}
         <span className="text-xs text-muted-foreground">{account.displayPhoneNumber ?? 'Not tested yet'}</span>
@@ -434,13 +436,14 @@ function WhatsappAccountListItem({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{account.label}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <WhatsappIcon className="size-4 shrink-0 text-muted-foreground" />
+              {account.label}
+            </DialogTitle>
           </DialogHeader>
           <WhatsappAccountDetails
             account={account}
-            templates={templates}
             initialTestResult={initialTestResult}
-            initialTemplateSync={initialTemplateSync}
             onClose={() => setOpen(false)}
           />
         </DialogContent>
@@ -518,14 +521,10 @@ function AddAccountDialog() {
 
 export function WhatsappAccountsManager({
   accounts,
-  templates,
   initialTestResults,
-  initialTemplateSyncResults,
 }: {
   accounts: WhatsappAccount[];
-  templates: TemplateDef[];
   initialTestResults: Record<string, WhatsappTestResult | null>;
-  initialTemplateSyncResults: Record<string, TemplateSyncResult | null>;
 }) {
   const sortedAccounts = [...accounts].sort((a, b) => Number(b.isActive) - Number(a.isActive));
 
@@ -535,9 +534,7 @@ export function WhatsappAccountsManager({
         <WhatsappAccountListItem
           key={account._id}
           account={account}
-          templates={templates}
           initialTestResult={initialTestResults[account._id] ?? null}
-          initialTemplateSync={initialTemplateSyncResults[account._id] ?? null}
         />
       ))}
 

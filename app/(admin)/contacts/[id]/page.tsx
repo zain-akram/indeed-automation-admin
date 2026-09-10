@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { ContactFiles } from '@/components/contact-files';
 import { NotesCard } from '@/components/notes-card';
 import { ResendSubmissionButton } from '@/components/resend-submission-button';
@@ -19,6 +20,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-6">
+      <BreadcrumbLabel path={`/contacts/${id}`} label={`${contact.firstName} ${contact.lastName}`} />
       <div>
         <h1 className="text-xl font-semibold">
           {contact.firstName} {contact.lastName}
