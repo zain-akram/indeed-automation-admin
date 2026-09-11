@@ -2,6 +2,7 @@
 
 import { format } from 'date-fns';
 import { SearchIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -60,12 +61,12 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                 <TableRow key={submission._id}>
                   <TableCell className="font-medium">
                     {submission.contact ? (
-                      <div className="flex flex-col">
+                      <Link href={`/contacts/${submission.contact._id}`} className="flex flex-col hover:underline">
                         <span>
                           {submission.contact.firstName} {submission.contact.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">{submission.contact.email}</span>
-                      </div>
+                      </Link>
                     ) : (
                       <span className="text-muted-foreground">Deleted contact</span>
                     )}
@@ -80,7 +81,7 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                     <EmailStatusIcons submission={submission} />
                   </TableCell>
                   <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
-                    {format(new Date(submission.createdAt), 'MMM d, yyyy h:mm a')}
+                    {format(new Date(submission.emailSentAt ?? submission.createdAt), 'MMM d, yyyy h:mm a')}
                   </TableCell>
                   <TableCell className="text-right">
                     {submission.emailTemplateId ? (

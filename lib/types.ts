@@ -45,6 +45,7 @@ export interface Submission {
   whatsappAccountId?: string;
   emailStatus?: SubmissionStatus;
   emailMessageId?: string;
+  emailSentAt?: string;
   emailError?: string;
   emailTemplateId?: string;
   emailDeliveredAt?: string;

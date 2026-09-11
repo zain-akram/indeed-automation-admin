@@ -34,7 +34,7 @@ export function ContactEmailsTable({ submissions }: { submissions: PopulatedEmai
                 <EmailStatusIcons submission={submission} />
               </TableCell>
               <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
-                {format(new Date(submission.createdAt), 'MMM d, yyyy h:mm a')}
+                {format(new Date(submission.emailSentAt ?? submission.createdAt), 'MMM d, yyyy h:mm a')}
               </TableCell>
               <TableCell className="text-right">
                 {submission.emailTemplateId ? (
