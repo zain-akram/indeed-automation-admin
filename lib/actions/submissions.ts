@@ -23,10 +23,17 @@ export interface SubmissionsPageResult {
   total: number;
 }
 
+export type EmailTrackingFilter = 'delivered' | 'opened' | 'clicked' | 'bounced';
+
+export type CandidateStatusFilter =
+  'whatsapp_sent' | 'whatsapp_failed' | 'email_sent' | 'email_failed' | 'not_contacted';
+
 export async function getSubmissionsPage(options: {
   jobId?: string;
   contactId?: string;
   search?: string;
+  tracking?: EmailTrackingFilter[];
+  status?: CandidateStatusFilter[];
   limit?: number;
   skip?: number;
 }): Promise<SubmissionsPageResult> {
@@ -34,6 +41,8 @@ export async function getSubmissionsPage(options: {
   if (options.jobId) params.set('jobId', options.jobId);
   if (options.contactId) params.set('contactId', options.contactId);
   if (options.search) params.set('search', options.search);
+  if (options.tracking?.length) params.set('tracking', options.tracking.join(','));
+  if (options.status?.length) params.set('status', options.status.join(','));
   if (options.limit) params.set('limit', String(options.limit));
   if (options.skip) params.set('skip', String(options.skip));
   const query = params.toString();
