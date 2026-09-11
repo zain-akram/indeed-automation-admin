@@ -110,23 +110,23 @@ export function JobSubmissionsTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative max-w-sm">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name, phone, or email…"
-          className="pl-8"
-        />
-      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="relative max-w-sm flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, phone, or email…"
+            className="pl-8"
+          />
+        </div>
 
-      {selectedIds.size > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-none bg-muted/20 p-3 ring-1 ring-foreground/10">
-          <span className="text-sm font-medium">{selectedIds.size} selected</span>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
-            Clear
-          </Button>
-          <div className="ml-auto flex flex-wrap gap-2">
+        {selectedIds.size > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </Button>
             <BulkWhatsappDialog
               job={job}
               recipients={selectedRecipients}
@@ -142,8 +142,8 @@ export function JobSubmissionsTable({
               onDone={() => setSelectedIds(new Set())}
             />
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -248,16 +248,19 @@ export function JobSubmissionsTable({
                   </TableRow>
                 );
               })}
+              {hasMore ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
+                      {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>
       )}
-
-      {hasMore ? (
-        <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="w-fit">
-          {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
-        </Button>
-      ) : null}
     </div>
   );
 }

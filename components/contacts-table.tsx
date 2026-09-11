@@ -130,16 +130,19 @@ export function ContactsTable({ initialItems, initialTotal, pageSize }: Contacts
                   </TableRow>
                 );
               })}
+              {hasMore ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
+                      {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>
       )}
-
-      {hasMore ? (
-        <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="w-fit">
-          {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
-        </Button>
-      ) : null}
     </div>
   );
 }
