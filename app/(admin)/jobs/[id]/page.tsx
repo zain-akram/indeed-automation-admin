@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
-import { JobSubmissionsTable } from '@/components/job-submissions-table';
+import { SubmissionsTable } from '@/components/submissions-table';
 import { getEmailTemplates } from '@/lib/actions/email-templates';
 import { getJob } from '@/lib/actions/jobs';
 import { getSubmissionsPage } from '@/lib/actions/submissions';
@@ -46,9 +46,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Submissions for this Job</h2>
-        <JobSubmissionsTable
+        <SubmissionsTable
           jobId={id}
-          job={job}
           initialItems={submissionsPage.items}
           initialTotal={submissionsPage.total}
           pageSize={PAGE_SIZE}

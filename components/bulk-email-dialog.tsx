@@ -12,6 +12,7 @@ import type { Contact, EmailTemplate, Job } from '@/lib/types';
 interface BulkRecipient {
   submissionId: string;
   contact: Contact;
+  job: Job;
 }
 
 interface BulkResult {
@@ -21,13 +22,12 @@ interface BulkResult {
 }
 
 interface BulkEmailDialogProps {
-  job: Job;
   recipients: BulkRecipient[];
   emailTemplates: EmailTemplate[];
   onDone: () => void;
 }
 
-export function BulkEmailDialog({ job, recipients, emailTemplates, onDone }: BulkEmailDialogProps) {
+export function BulkEmailDialog({ recipients, emailTemplates, onDone }: BulkEmailDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [emailTemplateId, setEmailTemplateId] = useState(
@@ -61,7 +61,7 @@ export function BulkEmailDialog({ job, recipients, emailTemplates, onDone }: Bul
     const collected: BulkResult[] = [];
 
     for (const recipient of recipients) {
-      const { contact } = recipient;
+      const { contact, job } = recipient;
       if (!contact.email) {
         collected.push({ contact, ok: false, error: 'No email address on file' });
         setResults([...collected]);

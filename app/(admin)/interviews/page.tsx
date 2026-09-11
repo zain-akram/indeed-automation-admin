@@ -1,13 +1,25 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { CandidateStatus } from '@/components/candidate-status';
-import { EmailTrackingIcons } from '@/components/email-status-icons';
-import { SubmissionRowActions } from '@/components/submission-row-actions';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getSubmissions } from '@/lib/actions/submissions';
+import { SubmissionsTable } from '@/components/submissions-table';
+import { getEmailTemplates } from '@/lib/actions/email-templates';
+import { getSubmissionsPage } from '@/lib/actions/submissions';
+import { getActiveWhatsappAccount, getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
+import type { TemplateDef } from '@/lib/types';
+
+const PAGE_SIZE = 50;
 
 export default async function InterviewsPage() {
-  const submissions = await getSubmissions();
+  const [submissionsPage, whatsappAccounts, activeAccount, emailTemplates] = await Promise.all([
+    getSubmissionsPage({ limit: PAGE_SIZE }),
+    getWhatsappAccounts(),
+    getActiveWhatsappAccount(),
+    getEmailTemplates(),
+  ]);
+
+  const templatesByAccount: Record<string, TemplateDef[]> = {};
+  for (const account of whatsappAccounts) {
+    templatesByAccount[account._id] = account.templates ?? [];
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,74 +30,15 @@ export default async function InterviewsPage() {
         </Button>
       </div>
 
-      {submissions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No interview submissions yet.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contact</TableHead>
-                <TableHead>Job</TableHead>
-                <TableHead>Template</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Email Tracking</TableHead>
-                <TableHead className="hidden md:table-cell">Sent Via</TableHead>
-                <TableHead className="hidden sm:table-cell">Sent</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((submission) => (
-                <TableRow key={submission._id}>
-                  <TableCell className="font-medium">
-                    {submission.contact ? (
-                      `${submission.contact.firstName} ${submission.contact.lastName}`
-                    ) : (
-                      <span className="text-muted-foreground italic">Deleted contact</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {submission.job?.title ?? <span className="text-muted-foreground italic">Deleted job</span>}
-                  </TableCell>
-                  <TableCell>
-                    {submission.templateKey ? <div>{submission.templateKey}</div> : null}
-                    {submission.emailTemplateId ? (
-                      <div className="text-xs text-muted-foreground">{submission.emailTemplateId.label}</div>
-                    ) : null}
-                    {!submission.templateKey && !submission.emailTemplateId ? (
-                      <span className="text-muted-foreground italic">—</span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <CandidateStatus submission={submission} />
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <EmailTrackingIcons submission={submission} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {submission.whatsappAccountId ? (
-                      <span>{submission.whatsappAccountId.label}</span>
-                    ) : (
-                      <span className="text-muted-foreground italic">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {new Date(submission.createdAt).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <SubmissionRowActions
-                      submissionId={submission._id}
-                      message={submission.renderedMessage}
-                      title={`Message to ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'deleted contact'}`}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SubmissionsTable
+        initialItems={submissionsPage.items}
+        initialTotal={submissionsPage.total}
+        pageSize={PAGE_SIZE}
+        whatsappAccounts={whatsappAccounts}
+        defaultWhatsappAccountId={activeAccount?._id}
+        emailTemplates={emailTemplates}
+        templatesByAccount={templatesByAccount}
+      />
     </div>
   );
 }

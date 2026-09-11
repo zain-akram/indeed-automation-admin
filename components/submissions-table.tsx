@@ -18,11 +18,10 @@ import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
 import { getSubmissionsPage } from '@/lib/actions/submissions';
 import { formatRelativeTime } from '@/lib/format-relative-time';
 import { getIndeedCandidateUrl } from '@/lib/indeed';
-import type { EmailTemplate, Job, PopulatedSubmission, TemplateDef, WhatsappAccount } from '@/lib/types';
+import type { EmailTemplate, PopulatedSubmission, TemplateDef, WhatsappAccount } from '@/lib/types';
 
-interface JobSubmissionsTableProps {
-  jobId: string;
-  job: Job;
+interface SubmissionsTableProps {
+  jobId?: string;
   initialItems: PopulatedSubmission[];
   initialTotal: number;
   pageSize: number;
@@ -32,9 +31,8 @@ interface JobSubmissionsTableProps {
   templatesByAccount: Record<string, TemplateDef[]>;
 }
 
-export function JobSubmissionsTable({
+export function SubmissionsTable({
   jobId,
-  job,
   initialItems,
   initialTotal,
   pageSize,
@@ -42,7 +40,9 @@ export function JobSubmissionsTable({
   defaultWhatsappAccountId,
   emailTemplates,
   templatesByAccount,
-}: JobSubmissionsTableProps) {
+}: SubmissionsTableProps) {
+  const showJobColumn = !jobId;
+  const columnCount = showJobColumn ? 9 : 8;
   const [search, setSearch] = useState('');
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
@@ -81,14 +81,14 @@ export function JobSubmissionsTable({
   }
 
   const hasMore = items.length < total;
-  const selectableItems = useMemo(() => items.filter((s) => s.contact), [items]);
+  const selectableItems = useMemo(() => items.filter((s) => s.contact && s.job), [items]);
   const allSelected = selectableItems.length > 0 && selectedIds.size === selectableItems.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
   const selectedRecipients = useMemo(
     () =>
       items
-        .filter((s) => selectedIds.has(s._id) && s.contact)
-        .map((s) => ({ submissionId: s._id, contact: s.contact! })),
+        .filter((s) => selectedIds.has(s._id) && s.contact && s.job)
+        .map((s) => ({ submissionId: s._id, contact: s.contact!, job: s.job! })),
     [items, selectedIds],
   );
 
@@ -128,7 +128,6 @@ export function JobSubmissionsTable({
               Clear
             </Button>
             <BulkWhatsappDialog
-              job={job}
               recipients={selectedRecipients}
               whatsappAccounts={whatsappAccounts}
               templatesByAccount={templatesByAccount}
@@ -136,7 +135,6 @@ export function JobSubmissionsTable({
               onDone={() => setSelectedIds(new Set())}
             />
             <BulkEmailDialog
-              job={job}
               recipients={selectedRecipients}
               emailTemplates={emailTemplates}
               onDone={() => setSelectedIds(new Set())}
@@ -147,7 +145,7 @@ export function JobSubmissionsTable({
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {search ? 'No submissions match your search.' : 'No submissions for this job yet.'}
+          {search ? 'No submissions match your search.' : 'No submissions yet.'}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
@@ -164,6 +162,7 @@ export function JobSubmissionsTable({
                   />
                 </TableHead>
                 <TableHead>Person</TableHead>
+                {showJobColumn ? <TableHead>Job</TableHead> : null}
                 <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead>Status</TableHead>
@@ -181,7 +180,7 @@ export function JobSubmissionsTable({
                       <Checkbox
                         checked={selectedIds.has(submission._id)}
                         onCheckedChange={() => toggleSelect(submission._id)}
-                        disabled={!submission.contact}
+                        disabled={!submission.contact || !submission.job}
                         aria-label={`Select ${submission.contact ? `${submission.contact.firstName} ${submission.contact.lastName}` : 'row'}`}
                       />
                     </TableCell>
@@ -194,6 +193,17 @@ export function JobSubmissionsTable({
                         <span className="text-muted-foreground italic">Deleted contact</span>
                       )}
                     </TableCell>
+                    {showJobColumn ? (
+                      <TableCell>
+                        {submission.job ? (
+                          <Link href={`/jobs/${submission.job._id}`} className="hover:underline">
+                            {submission.job.title}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground italic">Deleted job</span>
+                        )}
+                      </TableCell>
+                    ) : null}
                     <TableCell className="hidden md:table-cell">{submission.contact?.whatsapp ?? '—'}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">
                       {submission.contact?.email ?? '—'}
@@ -222,17 +232,17 @@ export function JobSubmissionsTable({
                           <IndeedIcon className="size-4" />
                         </Button>
                       ) : null}
-                      {submission.contact ? (
+                      {submission.contact && submission.job ? (
                         <>
                           <WhatsappInviteDialog
-                            job={job}
+                            job={submission.job}
                             contact={submission.contact}
                             whatsappAccounts={whatsappAccounts}
                             templatesByAccount={templatesByAccount}
                             defaultWhatsappAccountId={defaultWhatsappAccountId}
                           />
                           <EmailInviteDialog
-                            job={job}
+                            job={submission.job}
                             contact={submission.contact}
                             emailTemplates={emailTemplates}
                             whatsappAccounts={whatsappAccounts}
@@ -250,7 +260,7 @@ export function JobSubmissionsTable({
               })}
               {hasMore ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">
+                  <TableCell colSpan={columnCount} className="text-center">
                     <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
                       {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
                     </Button>

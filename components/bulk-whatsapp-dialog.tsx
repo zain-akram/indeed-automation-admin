@@ -15,6 +15,7 @@ import type { Contact, Job, TemplateDef, WhatsappAccount } from '@/lib/types';
 interface BulkRecipient {
   submissionId: string;
   contact: Contact;
+  job: Job;
 }
 
 interface BulkResult {
@@ -24,7 +25,6 @@ interface BulkResult {
 }
 
 interface BulkWhatsappDialogProps {
-  job: Job;
   recipients: BulkRecipient[];
   whatsappAccounts: WhatsappAccount[];
   templatesByAccount: Record<string, TemplateDef[]>;
@@ -33,7 +33,6 @@ interface BulkWhatsappDialogProps {
 }
 
 export function BulkWhatsappDialog({
-  job,
   recipients,
   whatsappAccounts,
   templatesByAccount,
@@ -85,7 +84,7 @@ export function BulkWhatsappDialog({
     setManualVariables({});
   }
 
-  function resolveVariableValue(contact: Contact, name: string): string {
+  function resolveVariableValue(contact: Contact, job: Job, name: string): string {
     if (isPositional) {
       return (manualVariables[name] ?? '').trim();
     }
@@ -103,11 +102,11 @@ export function BulkWhatsappDialog({
     const collected: BulkResult[] = [];
 
     for (const recipient of recipients) {
-      const { contact } = recipient;
+      const { contact, job } = recipient;
       const values: Record<string, string> = {};
       let missing: string | null = null;
       for (const name of selectedTemplate.variables) {
-        const value = resolveVariableValue(contact, name);
+        const value = resolveVariableValue(contact, job, name);
         if (!value) {
           missing = humanizeVariableName(name);
           break;
