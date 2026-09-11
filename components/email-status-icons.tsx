@@ -1,12 +1,42 @@
 import {
   CircleCheckIcon,
   CircleXIcon,
+  type LucideIcon,
   MailCheckIcon,
   MailOpenIcon,
   MousePointerClickIcon,
   TriangleAlertIcon,
 } from 'lucide-react';
+import { formatRelativeTime, formatShortRelativeTime } from '@/lib/format-relative-time';
 import type { PopulatedEmailSubmission } from '@/lib/types';
+
+function TrackingBadge({
+  icon: Icon,
+  label,
+  date,
+  className,
+}: {
+  icon: LucideIcon;
+  label: string;
+  date?: string;
+  className?: string;
+}) {
+  if (!date) {
+    return null;
+  }
+  return (
+    <span
+      className="inline-flex flex-col items-center gap-0.5"
+      title={`${label} ${formatRelativeTime(date)}`}
+      aria-label={`${label} ${formatRelativeTime(date)}`}
+    >
+      <Icon className={`size-4 ${className ?? 'text-muted-foreground'}`} />
+      <span className="text-[10px] leading-none text-muted-foreground" suppressHydrationWarning>
+        {formatShortRelativeTime(date)}
+      </span>
+    </span>
+  );
+}
 
 /** Delivered/opened/clicked/bounced only — the outcome of the send itself is shown separately. */
 export function EmailTrackingIcons({ submission }: { submission: PopulatedEmailSubmission }) {
@@ -19,27 +49,16 @@ export function EmailTrackingIcons({ submission }: { submission: PopulatedEmailS
     return null;
   }
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {submission.emailDeliveredAt ? (
-        <span title="Delivered" aria-label="Delivered" className="inline-flex">
-          <MailCheckIcon className="size-4 text-muted-foreground" />
-        </span>
-      ) : null}
-      {submission.emailOpenedAt ? (
-        <span title="Opened" aria-label="Opened" className="inline-flex">
-          <MailOpenIcon className="size-4 text-muted-foreground" />
-        </span>
-      ) : null}
-      {submission.emailClickedAt ? (
-        <span title="Clicked" aria-label="Clicked" className="inline-flex">
-          <MousePointerClickIcon className="size-4 text-muted-foreground" />
-        </span>
-      ) : null}
-      {submission.emailBouncedAt ? (
-        <span title="Bounced" aria-label="Bounced" className="inline-flex">
-          <TriangleAlertIcon className="size-4 text-destructive" />
-        </span>
-      ) : null}
+    <div className="flex flex-wrap items-center gap-2">
+      <TrackingBadge icon={MailCheckIcon} label="Delivered" date={submission.emailDeliveredAt} />
+      <TrackingBadge icon={MailOpenIcon} label="Opened" date={submission.emailOpenedAt} />
+      <TrackingBadge icon={MousePointerClickIcon} label="Clicked" date={submission.emailClickedAt} />
+      <TrackingBadge
+        icon={TriangleAlertIcon}
+        label="Bounced"
+        date={submission.emailBouncedAt}
+        className="text-destructive"
+      />
     </div>
   );
 }

@@ -217,6 +217,7 @@ export function SubmissionsTable({
                     <TableCell
                       className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell"
                       title={new Date(submission.appliedAt ?? submission.createdAt).toLocaleString('en-US')}
+                      suppressHydrationWarning
                     >
                       {formatRelativeTime(submission.appliedAt ?? submission.createdAt)}
                     </TableCell>
