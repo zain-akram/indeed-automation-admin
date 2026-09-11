@@ -1,6 +1,5 @@
 'use client';
 
-import { format } from 'date-fns';
 import { SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -8,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EmailPreviewButton } from '@/components/email-preview-button';
 import { EmailStatusIcons } from '@/components/email-status-icons';
+import { formatRelativeTime } from '@/lib/format-relative-time';
 import type { PopulatedEmailSubmission } from '@/lib/types';
 
 export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmission[] }) {
@@ -80,8 +80,12 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                   <TableCell>
                     <EmailStatusIcons submission={submission} />
                   </TableCell>
-                  <TableCell className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell">
-                    {format(new Date(submission.emailSentAt ?? submission.createdAt), 'MMM d, yyyy h:mm a')}
+                  <TableCell
+                    className="hidden text-xs whitespace-nowrap text-muted-foreground sm:table-cell"
+                    title={new Date(submission.emailSentAt ?? submission.createdAt).toLocaleString('en-US')}
+                    suppressHydrationWarning
+                  >
+                    {formatRelativeTime(submission.emailSentAt ?? submission.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
                     {submission.emailTemplateId ? (
