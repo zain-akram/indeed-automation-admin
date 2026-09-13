@@ -104,6 +104,7 @@ export interface EmailTemplate {
   body: string;
   replyTo?: string;
   whatsappMessage?: string;
+  whatsappLinkText?: string;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;

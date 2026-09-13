@@ -38,3 +38,33 @@ export function withLinkedWhatsappNumber(values: Record<string, string>): Record
   }
   return { ...values, 'whatsapp.number': `<a href="${link}">${number}</a>` };
 }
+
+/**
+ * Full HTML body preview, matching the backend's renderBody(): {{whatsapp.number}} becomes a link to the
+ * WhatsApp chat, and {{whatsapp.link}} used directly in text (not inside an href="...") becomes a
+ * friendly link instead of exposing the raw redirect URL — same split-on-tags trick the backend uses to
+ * tell the two usages apart.
+ */
+export function resolveEmailBody(body: string, values: Record<string, string>, linkText?: string): string {
+  const link = values['whatsapp.link'];
+  const numberValues = withLinkedWhatsappNumber(values);
+
+  if (!link) {
+    return resolvePlaceholders(body, numberValues);
+  }
+
+  const displayText = linkText?.trim() || 'Message us on WhatsApp';
+  return body
+    .split(/(<[^>]*>)/g)
+    .map((segment, index) => {
+      const isTag = index % 2 === 1;
+      if (isTag) {
+        return resolvePlaceholders(segment, numberValues);
+      }
+      return segment
+        .split('{{whatsapp.link}}')
+        .map((part) => resolvePlaceholders(part, numberValues))
+        .join(`<a href="${link}">${displayText}</a>`);
+    })
+    .join('');
+}

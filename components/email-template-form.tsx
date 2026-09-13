@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { PlaceholderLineInput } from '@/components/placeholder-line-input';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import type { EmailTemplateFormState } from '@/lib/actions/email-templates';
-import { resolvePlaceholders, SAMPLE_PLACEHOLDER_VALUES, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
+import { resolveEmailBody, resolvePlaceholders, SAMPLE_PLACEHOLDER_VALUES } from '@/lib/email-placeholders';
 import type { EmailTemplate } from '@/lib/types';
 
 interface EmailTemplateFormProps {
@@ -23,9 +23,10 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
   const [subject, setSubject] = useState(initial?.subject ?? '');
   const [body, setBody] = useState(initial?.body ?? '');
   const [whatsappMessage, setWhatsappMessage] = useState(initial?.whatsappMessage ?? '');
+  const [whatsappLinkText, setWhatsappLinkText] = useState(initial?.whatsappLinkText ?? '');
 
   const previewSubject = resolvePlaceholders(subject, SAMPLE_PLACEHOLDER_VALUES);
-  const previewBody = resolvePlaceholders(body, withLinkedWhatsappNumber(SAMPLE_PLACEHOLDER_VALUES));
+  const previewBody = resolveEmailBody(body, SAMPLE_PLACEHOLDER_VALUES, whatsappLinkText);
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-2">
@@ -67,12 +68,15 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
           <Label>Body</Label>
           <input type="hidden" name="body" value={body} />
           <input type="hidden" name="whatsappMessage" value={whatsappMessage} />
+          <input type="hidden" name="whatsappLinkText" value={whatsappLinkText} />
           <RichTextEditor
             key={`body-${idSuffix}`}
             value={initial?.body ?? ''}
             onChange={setBody}
             whatsappMessage={whatsappMessage}
             onWhatsappMessageChange={setWhatsappMessage}
+            whatsappLinkText={whatsappLinkText}
+            onWhatsappLinkTextChange={setWhatsappLinkText}
           />
           <p className="text-xs text-muted-foreground">
             Type <code>{'{{'}</code> in the subject or body to insert a field (Candidate, Job, or WhatsApp details).

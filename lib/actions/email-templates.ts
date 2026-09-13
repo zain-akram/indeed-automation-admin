@@ -32,6 +32,7 @@ export async function createEmailTemplateAction(
   const body = String(formData.get('body') ?? '').trim();
   const replyTo = String(formData.get('replyTo') ?? '').trim();
   const whatsappMessage = String(formData.get('whatsappMessage') ?? '').trim();
+  const whatsappLinkText = String(formData.get('whatsappLinkText') ?? '').trim();
 
   if (!label || !subject || !body) {
     return { error: 'Label, subject and body are all required' };
@@ -47,6 +48,7 @@ export async function createEmailTemplateAction(
         body,
         replyTo: replyTo || undefined,
         whatsappMessage: whatsappMessage || undefined,
+        whatsappLinkText: whatsappLinkText || undefined,
       }),
     });
   } catch (error) {
@@ -68,6 +70,7 @@ export async function updateEmailTemplateAction(
   const body = String(formData.get('body') ?? '').trim();
   const replyTo = String(formData.get('replyTo') ?? '').trim();
   const whatsappMessage = String(formData.get('whatsappMessage') ?? '').trim();
+  const whatsappLinkText = String(formData.get('whatsappLinkText') ?? '').trim();
 
   if (!label || !subject || !body) {
     return { error: 'Label, subject and body are all required' };
@@ -83,6 +86,7 @@ export async function updateEmailTemplateAction(
         body,
         replyTo: replyTo || undefined,
         whatsappMessage: whatsappMessage || undefined,
+        whatsappLinkText: whatsappLinkText || undefined,
       }),
     });
   } catch (error) {

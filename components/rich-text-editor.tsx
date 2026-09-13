@@ -78,15 +78,25 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   whatsappMessage?: string;
   onWhatsappMessageChange?: (value: string) => void;
+  whatsappLinkText?: string;
+  onWhatsappLinkTextChange?: (value: string) => void;
 }
 
-export function RichTextEditor({ value, onChange, whatsappMessage, onWhatsappMessageChange }: RichTextEditorProps) {
+export function RichTextEditor({
+  value,
+  onChange,
+  whatsappMessage,
+  onWhatsappMessageChange,
+  whatsappLinkText,
+  onWhatsappLinkTextChange,
+}: RichTextEditorProps) {
   const toolbarButtons = useToolbarButtons();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrlDraft, setLinkUrlDraft] = useState('');
   const [linkTextDraft, setLinkTextDraft] = useState('');
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappMessageDraft, setWhatsappMessageDraft] = useState(whatsappMessage ?? '');
+  const [whatsappLinkTextDraft, setWhatsappLinkTextDraft] = useState(whatsappLinkText ?? '');
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: false }),
@@ -147,11 +157,13 @@ export function RichTextEditor({ value, onChange, whatsappMessage, onWhatsappMes
 
   function openWhatsappDialog() {
     setWhatsappMessageDraft(whatsappMessage ?? '');
+    setWhatsappLinkTextDraft(whatsappLinkText ?? '');
     setWhatsappDialogOpen(true);
   }
 
   function applyWhatsappMessage() {
     onWhatsappMessageChange?.(whatsappMessageDraft.trim());
+    onWhatsappLinkTextChange?.(whatsappLinkTextDraft.trim());
     setWhatsappDialogOpen(false);
   }
 
@@ -272,6 +284,19 @@ export function RichTextEditor({ value, onChange, whatsappMessage, onWhatsappMes
             <p className="text-xs text-muted-foreground">
               This is what pre-fills when the candidate taps the WhatsApp link — type <code>{'{{'}</code> to insert the
               candidate&apos;s name or the job title. Leave blank to use the default message.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="rte-whatsapp-link-text">Link text</Label>
+            <PlaceholderLineInput
+              id="rte-whatsapp-link-text"
+              value={whatsappLinkTextDraft}
+              onChange={setWhatsappLinkTextDraft}
+              placeholder="Message us on WhatsApp"
+            />
+            <p className="text-xs text-muted-foreground">
+              What the candidate sees as the clickable text for <code>{'{{whatsapp.link}}'}</code> when it&apos;s used
+              directly in the body (not wrapped in its own link via the link icon). Leave blank to use the default text.
             </p>
           </div>
           <DialogFooter>

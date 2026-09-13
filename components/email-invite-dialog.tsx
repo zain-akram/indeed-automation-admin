@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createSubmission } from '@/lib/actions/submissions';
-import { resolvePlaceholders, withLinkedWhatsappNumber } from '@/lib/email-placeholders';
+import { resolveEmailBody, resolvePlaceholders } from '@/lib/email-placeholders';
 import type { Contact, EmailTemplate, Job, Submission, WhatsappAccount } from '@/lib/types';
 
 interface EmailInviteDialogProps {
@@ -53,7 +53,7 @@ export function EmailInviteDialog({ job, contact, emailTemplates, whatsappAccoun
   };
   const previewSubject = selectedTemplate ? resolvePlaceholders(selectedTemplate.subject, previewValues) : '';
   const previewBody = selectedTemplate
-    ? resolvePlaceholders(selectedTemplate.body, withLinkedWhatsappNumber(previewValues))
+    ? resolveEmailBody(selectedTemplate.body, previewValues, selectedTemplate.whatsappLinkText)
     : '';
 
   function describeSubmission(s: Submission): string {
