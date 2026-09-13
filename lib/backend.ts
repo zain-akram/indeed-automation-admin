@@ -1,3 +1,6 @@
+import { cookies } from 'next/headers';
+import { SESSION_COOKIE_NAME, verifyOrgsSessionToken } from '@/lib/session';
+
 function baseUrl(): string {
   const url = process.env.BACKEND_API_URL;
   if (!url) {
@@ -6,12 +9,14 @@ function baseUrl(): string {
   return url;
 }
 
-function adminSecret(): string {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret) {
-    throw new Error('ADMIN_SECRET is not set');
+async function activeOrgSecret(): Promise<string> {
+  const cookieStore = await cookies();
+  const session = await verifyOrgsSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  const active = session?.orgs.find((org) => org.organizationId === session.activeOrganizationId);
+  if (!active) {
+    throw new BackendError('No active organization');
   }
-  return secret;
+  return active.secret;
 }
 
 export class BackendError extends Error {}
@@ -23,7 +28,7 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
     headers: {
       // Let fetch set its own multipart Content-Type (with boundary) for FormData bodies.
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      'x-admin-secret': adminSecret(),
+      'x-admin-secret': await activeOrgSecret(),
       ...init?.headers,
     },
     cache: 'no-store',
@@ -31,7 +36,9 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
 
   if (!response.ok) {
     const body = (await response.json().catch(() => undefined)) as { message?: string | string[] } | undefined;
-    const message = Array.isArray(body?.message) ? body.message.join(', ') : (body?.message ?? `Request failed (${response.status})`);
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : (body?.message ?? `Request failed (${response.status})`);
     throw new BackendError(message);
   }
 
