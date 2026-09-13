@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { PlaceholderLineInput } from '@/components/placeholder-line-input';
 import {
   PLACEHOLDER_EDITOR_CONTENT_CLASSNAME,
   PlaceholderSuggestionExtension,
@@ -262,17 +262,16 @@ export function RichTextEditor({ value, onChange, whatsappMessage, onWhatsappMes
           </DialogHeader>
           <div className="flex flex-col gap-2">
             <Label htmlFor="rte-whatsapp-message">Prefilled message</Label>
-            <Textarea
+            <PlaceholderLineInput
               id="rte-whatsapp-message"
               value={whatsappMessageDraft}
-              onChange={(e) => setWhatsappMessageDraft(e.target.value)}
+              onChange={setWhatsappMessageDraft}
               placeholder="Hi, I am {{contact.name}}, I have received your email and I am still interested in your {{job.title}} position."
-              rows={4}
-              autoFocus
+              multiline
             />
             <p className="text-xs text-muted-foreground">
-              This is what pre-fills when the candidate taps the WhatsApp link — <code>{'{{contact.name}}'}</code> and{' '}
-              <code>{'{{job.title}}'}</code> are filled in per recipient. Leave blank to use the default message.
+              This is what pre-fills when the candidate taps the WhatsApp link — type <code>{'{{'}</code> to insert the
+              candidate&apos;s name or the job title. Leave blank to use the default message.
             </p>
           </div>
           <DialogFooter>

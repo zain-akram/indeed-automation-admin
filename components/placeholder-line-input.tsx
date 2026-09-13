@@ -26,9 +26,18 @@ interface PlaceholderLineInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Visually wraps across multiple lines instead of a single-row horizontal scroll — the underlying
+   * value is still one line (no real Enter key), just displayed taller for a longer message. */
+  multiline?: boolean;
 }
 
-export function PlaceholderLineInput({ id, value, onChange, placeholder }: PlaceholderLineInputProps) {
+export function PlaceholderLineInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  multiline = false,
+}: PlaceholderLineInputProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -57,8 +66,9 @@ export function PlaceholderLineInput({ id, value, onChange, placeholder }: Place
     editorProps: {
       attributes: {
         ...(id ? { id } : {}),
-        class:
-          'h-8 w-full overflow-x-auto rounded-none border border-input bg-transparent px-2.5 py-1 text-xs whitespace-nowrap outline-none [&_p]:m-0 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50',
+        class: multiline
+          ? 'min-h-24 w-full rounded-none border border-input bg-transparent px-2.5 py-2 text-xs whitespace-pre-wrap outline-none [&_p]:m-0 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50'
+          : 'h-8 w-full overflow-x-auto rounded-none border border-input bg-transparent px-2.5 py-1 text-xs whitespace-nowrap outline-none [&_p]:m-0 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50',
       },
     },
     onUpdate: ({ editor: updatedEditor }) => {
