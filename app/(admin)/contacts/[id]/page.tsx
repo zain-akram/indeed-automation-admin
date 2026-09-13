@@ -1,33 +1,85 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbLabel } from '@/components/breadcrumb-label';
 import { ContactEmailsTable } from '@/components/contact-emails-table';
 import { ContactFiles } from '@/components/contact-files';
+import { ContactQuickSend } from '@/components/contact-quick-send';
+import { IndeedIcon } from '@/components/indeed-icon';
 import { NotesCard } from '@/components/notes-card';
 import { SubmissionRowActions } from '@/components/submission-row-actions';
 import { SubmissionStatusBadge } from '@/components/submission-status-badge';
 import { getContact, getContactFiles } from '@/lib/actions/contacts';
+import { getEmailTemplates } from '@/lib/actions/email-templates';
+import { getJobs } from '@/lib/actions/jobs';
 import { getEmailSubmissions, getSubmissions } from '@/lib/actions/submissions';
+import { getActiveWhatsappAccount, getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
+import { getIndeedCandidateUrl } from '@/lib/indeed';
+import type { TemplateDef } from '@/lib/types';
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [contact, submissions, emailSubmissions, files] = await Promise.all([
-    getContact(id),
-    getSubmissions({ contactId: id }),
-    getEmailSubmissions({ contactId: id }),
-    getContactFiles(id),
-  ]);
+  const [contact, submissions, emailSubmissions, files, jobs, whatsappAccounts, activeAccount, emailTemplates] =
+    await Promise.all([
+      getContact(id),
+      getSubmissions({ contactId: id }),
+      getEmailSubmissions({ contactId: id }),
+      getContactFiles(id),
+      getJobs(),
+      getWhatsappAccounts(),
+      getActiveWhatsappAccount(),
+      getEmailTemplates(),
+    ]);
+
+  const templatesByAccount: Record<string, TemplateDef[]> = {};
+  for (const account of whatsappAccounts) {
+    templatesByAccount[account._id] = account.templates ?? [];
+  }
+
+  const resumeUrl = submissions.find((s) => s.resumeUrl)?.resumeUrl;
+  const indeedCandidateUrl = getIndeedCandidateUrl(resumeUrl);
+  const defaultJobId = submissions.find((s) => s.job)?.job?._id;
 
   return (
     <div className="flex flex-col gap-6">
       <BreadcrumbLabel path={`/contacts/${id}`} label={`${contact.firstName} ${contact.lastName}`} />
-      <div>
-        <h1 className="text-xl font-semibold">
-          {contact.firstName} {contact.lastName}
-        </h1>
-        <p className="text-sm text-muted-foreground">{contact.whatsapp}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold">
+            {contact.firstName} {contact.lastName}
+          </h1>
+          <p className="text-sm text-muted-foreground">{contact.whatsapp}</p>
+        </div>
+        {indeedCandidateUrl ? (
+          <Button
+            render={<a href={indeedCandidateUrl} target="_blank" rel="noopener noreferrer" />}
+            nativeButton={false}
+            variant="outline"
+            size="sm"
+          >
+            <IndeedIcon className="size-4" />
+            View on Indeed
+          </Button>
+        ) : null}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Send a Message</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContactQuickSend
+            contact={contact}
+            jobs={jobs}
+            defaultJobId={defaultJobId}
+            whatsappAccounts={whatsappAccounts}
+            templatesByAccount={templatesByAccount}
+            defaultWhatsappAccountId={activeAccount?._id}
+            emailTemplates={emailTemplates}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
