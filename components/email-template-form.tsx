@@ -22,6 +22,7 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
   const idSuffix = initial?._id ?? 'new';
   const [subject, setSubject] = useState(initial?.subject ?? '');
   const [body, setBody] = useState(initial?.body ?? '');
+  const [whatsappMessage, setWhatsappMessage] = useState(initial?.whatsappMessage ?? '');
 
   const previewSubject = resolvePlaceholders(subject, SAMPLE_PLACEHOLDER_VALUES);
   const previewBody = resolvePlaceholders(body, withLinkedWhatsappNumber(SAMPLE_PLACEHOLDER_VALUES));
@@ -65,10 +66,18 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
         <div className="flex flex-col gap-2">
           <Label>Body</Label>
           <input type="hidden" name="body" value={body} />
-          <RichTextEditor key={`body-${idSuffix}`} value={initial?.body ?? ''} onChange={setBody} />
+          <input type="hidden" name="whatsappMessage" value={whatsappMessage} />
+          <RichTextEditor
+            key={`body-${idSuffix}`}
+            value={initial?.body ?? ''}
+            onChange={setBody}
+            whatsappMessage={whatsappMessage}
+            onWhatsappMessageChange={setWhatsappMessage}
+          />
           <p className="text-xs text-muted-foreground">
             Type <code>{'{{'}</code> in the subject or body to insert a field (Candidate, Job, or WhatsApp details).
-            Select text and click the link icon to make it clickable.
+            Select text and click the link icon to make it clickable. Double-click a WhatsApp field to customize its
+            prefilled message.
           </p>
         </div>
         <div className="flex flex-col gap-2">

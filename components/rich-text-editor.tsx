@@ -18,12 +18,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   PLACEHOLDER_EDITOR_CONTENT_CLASSNAME,
   PlaceholderSuggestionExtension,
   PlaceholderTokenNode,
   wrapPlaceholdersForEditor,
 } from '@/lib/tiptap-placeholder-extensions';
+
+const WHATSAPP_LINK_PLACEHOLDER_VALUES = new Set(['whatsapp.number', 'whatsapp.link']);
 
 interface ToolbarButtonConfig {
   icon: LucideIcon;
@@ -70,11 +73,20 @@ function useToolbarButtons(): ToolbarButtonConfig[] {
   );
 }
 
-export function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+interface RichTextEditorProps {
+  value: string;
+  onChange: (html: string) => void;
+  whatsappMessage?: string;
+  onWhatsappMessageChange?: (value: string) => void;
+}
+
+export function RichTextEditor({ value, onChange, whatsappMessage, onWhatsappMessageChange }: RichTextEditorProps) {
   const toolbarButtons = useToolbarButtons();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrlDraft, setLinkUrlDraft] = useState('');
   const [linkTextDraft, setLinkTextDraft] = useState('');
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappMessageDraft, setWhatsappMessageDraft] = useState(whatsappMessage ?? '');
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: false }),
@@ -133,6 +145,16 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
     setLinkDialogOpen(false);
   }
 
+  function openWhatsappDialog() {
+    setWhatsappMessageDraft(whatsappMessage ?? '');
+    setWhatsappDialogOpen(true);
+  }
+
+  function applyWhatsappMessage() {
+    onWhatsappMessageChange?.(whatsappMessageDraft.trim());
+    setWhatsappDialogOpen(false);
+  }
+
   function removeLink() {
     editor!.chain().focus().extendMarkRange('link').unsetLink().run();
     setLinkDialogOpen(false);
@@ -171,6 +193,14 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
             // Defer a tick: ProseMirror hasn't finished syncing the click's caret position into
             // editor.state yet when this capture-phase handler runs.
             setTimeout(openLinkDialog, 0);
+          }
+        }}
+        onDoubleClick={(e) => {
+          const token = (e.target as HTMLElement).closest('[data-placeholder-token]');
+          const tokenValue = token?.getAttribute('data-value');
+          if (tokenValue && WHATSAPP_LINK_PLACEHOLDER_VALUES.has(tokenValue)) {
+            e.preventDefault();
+            openWhatsappDialog();
           }
         }}
       >
@@ -220,6 +250,34 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
             ) : null}
             <DialogClose render={<Button type="button" variant="ghost" />}>Cancel</DialogClose>
             <Button type="button" onClick={applyLink}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>WhatsApp Message</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="rte-whatsapp-message">Prefilled message</Label>
+            <Textarea
+              id="rte-whatsapp-message"
+              value={whatsappMessageDraft}
+              onChange={(e) => setWhatsappMessageDraft(e.target.value)}
+              placeholder="Hi, I am {{contact.name}}, I have received your email and I am still interested in your {{job.title}} position."
+              rows={4}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              This is what pre-fills when the candidate taps the WhatsApp link — <code>{'{{contact.name}}'}</code> and{' '}
+              <code>{'{{job.title}}'}</code> are filled in per recipient. Leave blank to use the default message.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>Cancel</DialogClose>
+            <Button type="button" onClick={applyWhatsappMessage}>
               Apply
             </Button>
           </DialogFooter>

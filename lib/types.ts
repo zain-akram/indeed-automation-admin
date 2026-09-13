@@ -103,6 +103,7 @@ export interface EmailTemplate {
   subject: string;
   body: string;
   replyTo?: string;
+  whatsappMessage?: string;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
