@@ -80,8 +80,14 @@ export interface EmailStatsResponse {
   byTemplate: Record<string, EmailTemplateStats>;
 }
 
-export async function getEmailStats(): Promise<EmailStatsResponse> {
-  return backendFetch<EmailStatsResponse>('/submissions/email-stats');
+export async function getEmailStats(since?: Date): Promise<EmailStatsResponse> {
+  const query = since ? `?since=${encodeURIComponent(since.toISOString())}` : '';
+  return backendFetch<EmailStatsResponse>(`/submissions/email-stats${query}`);
+}
+
+export async function getSubmissionsCount(since?: Date): Promise<number> {
+  const query = since ? `?since=${encodeURIComponent(since.toISOString())}` : '';
+  return backendFetch<number>(`/submissions/count-in-range${query}`);
 }
 
 export interface EmailUsage {

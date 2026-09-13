@@ -15,11 +15,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IndeedImportDialog } from '@/components/indeed-import-dialog';
+import { StatsRangeSwitcher } from '@/components/stats-range-switcher';
 import { WhatsappIcon } from '@/components/whatsapp-icon';
-import { getContacts } from '@/lib/actions/contacts';
+import { getContactsPage } from '@/lib/actions/contacts';
 import { getJobs } from '@/lib/actions/jobs';
-import { getEmailStats, getEmailUsage, getStatsByAccount, getSubmissions } from '@/lib/actions/submissions';
+import { getEmailStats, getEmailUsage, getStatsByAccount, getSubmissionsCount } from '@/lib/actions/submissions';
 import { getWhatsappAccounts } from '@/lib/actions/whatsapp-accounts';
+import { DEFAULT_STATS_RANGE, isStatsRangeValue, rangeToSince } from '@/lib/stats-range';
 
 const QUICK_ACTIONS = [
   { href: '/interviews/new', label: 'New Interview', icon: CalendarPlusIcon },
@@ -27,22 +29,33 @@ const QUICK_ACTIONS = [
   { href: '/jobs/new', label: 'Add Job', icon: BriefcaseIcon },
 ];
 
-export default async function DashboardPage() {
-  const [jobs, contacts, submissions, whatsappAccounts, statsByAccount, emailStats, emailUsage] = await Promise.all([
-    getJobs(),
-    getContacts(),
-    getSubmissions(),
-    getWhatsappAccounts(),
-    getStatsByAccount(),
-    getEmailStats(),
-    getEmailUsage(),
-  ]);
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const { range: rangeParam } = await searchParams;
+  const range = rangeParam && isStatsRangeValue(rangeParam) ? rangeParam : DEFAULT_STATS_RANGE;
+  const since = rangeToSince(range);
 
-  const stats = [
+  const [jobs, contactsPage, submissionsCount, whatsappAccounts, statsByAccount, emailStats, emailUsage] =
+    await Promise.all([
+      getJobs(),
+      getContactsPage({ limit: 1 }),
+      getSubmissionsCount(since),
+      getWhatsappAccounts(),
+      getStatsByAccount(),
+      getEmailStats(since),
+      getEmailUsage(),
+    ]);
+
+  const inventoryStats = [
     { label: 'Total Jobs', count: jobs.length, href: '/jobs', icon: BriefcaseIcon },
-    { label: 'Total Contacts', count: contacts.length, href: '/contacts', icon: UsersIcon },
-    { label: 'Total Submissions', count: submissions.length, href: '/interviews', icon: ClipboardListIcon },
-    { label: 'Emails Sent', count: emailStats.overall.sent, href: '/emails', icon: MailIcon },
+    { label: 'Total Contacts', count: contactsPage.total, href: '/contacts', icon: UsersIcon },
+  ];
+
+  const activityStats = [
+    { label: 'Submissions', count: submissionsCount, icon: ClipboardListIcon },
+    { label: 'Sent', count: emailStats.overall.sent, icon: SendIcon },
+    { label: 'Delivered', count: emailStats.overall.delivered, icon: MailCheckIcon },
+    { label: 'Opened', count: emailStats.overall.opened, icon: MailOpenIcon },
+    { label: 'Clicked', count: emailStats.overall.clicked, icon: MousePointerClickIcon },
   ];
 
   const whatsappCap = whatsappAccounts.reduce((sum, a) => sum + (a.messagingLimitCap ?? 0), 0);
@@ -67,8 +80,8 @@ export default async function DashboardPage() {
         <IndeedImportDialog />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {inventoryStats.map((stat) => (
           <Link key={stat.href} href={stat.href} className="block">
             <Card className="transition-colors hover:bg-muted/50">
               <CardHeader>
@@ -89,18 +102,16 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Email Performance</h2>
-        {emailStats.overall.sent + emailStats.overall.failed === 0 ? (
-          <p className="text-sm text-muted-foreground">No follow-up emails sent yet.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Activity</h2>
+          <StatsRangeSwitcher value={range} />
+        </div>
+        {activityStats.every((stat) => stat.count === 0) ? (
+          <p className="text-sm text-muted-foreground">No activity in this period.</p>
         ) : (
           <Card>
-            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                { label: 'Sent', count: emailStats.overall.sent, icon: SendIcon },
-                { label: 'Delivered', count: emailStats.overall.delivered, icon: MailCheckIcon },
-                { label: 'Opened', count: emailStats.overall.opened, icon: MailOpenIcon },
-                { label: 'Clicked', count: emailStats.overall.clicked, icon: MousePointerClickIcon },
-              ].map((item) => (
+            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+              {activityStats.map((item) => (
                 <div key={item.label} className="flex flex-col gap-1">
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <item.icon className="size-3.5" />
