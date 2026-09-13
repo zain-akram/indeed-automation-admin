@@ -1,7 +1,7 @@
 'use client';
 
 import { CalendarIcon, ChevronsUpDownIcon } from 'lucide-react';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { WhatsappIcon } from '@/components/whatsapp-icon';
-import { appendContactNotesAction, type AutofillResult } from '@/lib/actions/contacts';
+import { appendContactNotesAction, getContactsPage, type AutofillResult } from '@/lib/actions/contacts';
 import { createSubmission, type CreateSubmissionInput } from '@/lib/actions/submissions';
 import { resolveEmailBody, resolvePlaceholders } from '@/lib/email-placeholders';
 import { isValidWhatsapp, WHATSAPP_ERROR, sanitizeWhatsappInput } from '@/lib/phone';
@@ -75,7 +75,6 @@ function formatInterviewDateTime(date: Date, timeOfDay: string): string {
 
 interface InterviewFormProps {
   jobs: Job[];
-  contacts: Contact[];
   whatsappAccounts: WhatsappAccount[];
   templatesByAccount: Record<string, TemplateDef[]>;
   emailTemplates: EmailTemplate[];
@@ -87,7 +86,6 @@ interface InterviewFormProps {
 
 export function InterviewForm({
   jobs,
-  contacts,
   whatsappAccounts,
   templatesByAccount,
   emailTemplates,
@@ -128,22 +126,46 @@ export function InterviewForm({
   } | null>(null);
   const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
+  const [selectedContact, setSelectedContact] = useState<Contact | undefined>(undefined);
+  const [contactResults, setContactResults] = useState<Contact[]>([]);
+  const [searchingContacts, setSearchingContacts] = useState(false);
   const [channel, setChannel] = useState<DeliveryChannel>(defaultDeliveryChannel ?? 'whatsapp');
   const [emailTemplateId, setEmailTemplateId] = useState(
     () => emailTemplates.find((t) => t.isDefault)?._id ?? emailTemplates[0]?._id ?? '',
   );
 
   const isNewContact = contactSelection === NEW_CONTACT_VALUE;
-  const selectedContact = contacts.find((c) => c._id === contactSelection);
-  const filteredContacts = useMemo(() => {
-    const query = personSearch.trim().toLowerCase();
-    if (!query) {
-      return contacts;
+
+  // Contacts can number in the thousands, so the picker searches the backend (debounced) instead
+  // of ever loading the full list into the client.
+  useEffect(() => {
+    if (!personPopoverOpen) {
+      return;
     }
-    return contacts.filter((c) =>
-      `${c.firstName} ${c.lastName} ${c.whatsapp} ${c.notes ?? ''}`.toLowerCase().includes(query),
-    );
-  }, [contacts, personSearch]);
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+      setSearchingContacts(true);
+      getContactsPage({ search: personSearch.trim() || undefined, limit: 20 })
+        .then((page) => {
+          if (!cancelled) {
+            setContactResults(page.items);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setSearchingContacts(false);
+          }
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [personPopoverOpen, personSearch]);
+
   const selectedJob = jobs.find((j) => j._id === jobId);
   const selectedTemplate = availableTemplates.find((t) => t.key === templateKey);
   const isPositional = selectedTemplate ? isPositionalTemplate(selectedTemplate.variables) : false;
@@ -313,6 +335,7 @@ export function InterviewForm({
   function resetForm() {
     setJobId(defaultJobId && jobs.some((j) => j._id === defaultJobId) ? defaultJobId : '');
     setContactSelection('');
+    setSelectedContact(undefined);
     setNewContact({ firstName: '', lastName: '', whatsapp: '', email: '', notes: '' });
     const resetAccountId =
       defaultWhatsappAccountId && whatsappAccounts.some((a) => a._id === defaultWhatsappAccountId)
@@ -328,14 +351,17 @@ export function InterviewForm({
     setEmailTemplateId(emailTemplates.find((t) => t.isDefault)?._id ?? emailTemplates[0]?._id ?? '');
   }
 
-  function handleAutofillResult(result: AutofillResult) {
+  async function handleAutofillResult(result: AutofillResult) {
     const normalizedIncoming = result.whatsapp ? normalizeWhatsapp(result.whatsapp) : undefined;
     const match = normalizedIncoming
-      ? contacts.find((c) => normalizeWhatsapp(c.whatsapp) === normalizedIncoming)
+      ? (await getContactsPage({ search: normalizedIncoming, limit: 5 })).items.find(
+          (c) => normalizeWhatsapp(c.whatsapp) === normalizedIncoming,
+        )
       : undefined;
 
     if (match) {
       setContactSelection(match._id);
+      setSelectedContact(match);
       setPersonSearch('');
       setPersonPopoverOpen(false);
       toast.success(`Matched existing contact: ${match.firstName} ${match.lastName}`);
@@ -766,7 +792,7 @@ export function InterviewForm({
                   placeholder="Search name, number, or notes…"
                 />
                 <CommandList>
-                  <CommandEmpty>No matches.</CommandEmpty>
+                  <CommandEmpty>{searchingContacts ? 'Searching…' : 'No matches.'}</CommandEmpty>
                   <CommandGroup>
                     <CommandItem
                       value="add new contact"
@@ -777,12 +803,13 @@ export function InterviewForm({
                     >
                       + Add new contact
                     </CommandItem>
-                    {filteredContacts.map((contact) => (
+                    {contactResults.map((contact) => (
                       <CommandItem
                         key={contact._id}
                         value={contact._id}
                         onSelect={() => {
                           setContactSelection(contact._id);
+                          setSelectedContact(contact);
                           setPersonPopoverOpen(false);
                         }}
                       >
