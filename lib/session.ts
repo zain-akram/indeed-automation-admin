@@ -1,16 +1,11 @@
-export const SESSION_COOKIE_NAME = 'admin_orgs';
+export const SESSION_COOKIE_NAME = 'admin_session';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
-export interface UnlockedOrg {
-  organizationId: string;
-  name: string;
-  slug: string;
+export interface AdminSession {
+  /** The secret you actually logged in with — any organization's secret proves you're the (single)
+   * trusted admin; which org you're currently acting as is tracked separately below. */
   secret: string;
-}
-
-export interface OrgsSession {
-  orgs: UnlockedOrg[];
   activeOrganizationId: string;
   expiry: number;
 }
@@ -35,14 +30,14 @@ async function sign(message: string): Promise<string> {
   return bytesToHex(signature);
 }
 
-export async function createOrgsSessionToken(orgs: UnlockedOrg[], activeOrganizationId: string): Promise<string> {
-  const session: OrgsSession = { orgs, activeOrganizationId, expiry: Date.now() + SESSION_DURATION_MS };
+export async function createAdminSessionToken(secret: string, activeOrganizationId: string): Promise<string> {
+  const session: AdminSession = { secret, activeOrganizationId, expiry: Date.now() + SESSION_DURATION_MS };
   const payload = Buffer.from(JSON.stringify(session), 'utf8').toString('base64url');
   const signature = await sign(payload);
   return `${payload}.${signature}`;
 }
 
-export async function verifyOrgsSessionToken(token: string | undefined): Promise<OrgsSession | null> {
+export async function verifyAdminSessionToken(token: string | undefined): Promise<AdminSession | null> {
   if (!token) {
     return null;
   }
@@ -54,9 +49,9 @@ export async function verifyOrgsSessionToken(token: string | undefined): Promise
   if (expected !== signature) {
     return null;
   }
-  let session: OrgsSession;
+  let session: AdminSession;
   try {
-    session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as OrgsSession;
+    session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as AdminSession;
   } catch {
     return null;
   }

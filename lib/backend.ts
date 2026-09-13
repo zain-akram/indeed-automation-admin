@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { SESSION_COOKIE_NAME, verifyOrgsSessionToken } from '@/lib/session';
+import { SESSION_COOKIE_NAME, verifyAdminSessionToken } from '@/lib/session';
 
 function baseUrl(): string {
   const url = process.env.BACKEND_API_URL;
@@ -9,26 +9,27 @@ function baseUrl(): string {
   return url;
 }
 
-async function activeOrgSecret(): Promise<string> {
-  const cookieStore = await cookies();
-  const session = await verifyOrgsSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
-  const active = session?.orgs.find((org) => org.organizationId === session.activeOrganizationId);
-  if (!active) {
-    throw new BackendError('No active organization');
-  }
-  return active.secret;
-}
-
 export class BackendError extends Error {}
 
+async function activeSession() {
+  const cookieStore = await cookies();
+  const session = await verifyAdminSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  if (!session) {
+    throw new BackendError('Not signed in');
+  }
+  return session;
+}
+
 export async function backendFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const session = await activeSession();
   const isFormData = init?.body instanceof FormData;
   const response = await fetch(`${baseUrl()}${path}`, {
     ...init,
     headers: {
       // Let fetch set its own multipart Content-Type (with boundary) for FormData bodies.
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      'x-admin-secret': await activeOrgSecret(),
+      'x-admin-secret': session.secret,
+      'x-organization-id': session.activeOrganizationId,
       ...init?.headers,
     },
     cache: 'no-store',

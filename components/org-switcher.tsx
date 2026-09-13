@@ -1,17 +1,15 @@
 'use client';
 
-import { Building2Icon, PlusIcon } from 'lucide-react';
+import { Building2Icon, CopyIcon, PlusIcon } from 'lucide-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  switchOrganization,
-  unlockOrganization,
-  type UnlockOrganizationState,
-} from '@/lib/actions/organizations-session';
+import { createOrganizationAction, type OrganizationActionState } from '@/lib/actions/organizations';
+import { switchOrganization } from '@/lib/actions/organizations-session';
 
 const ADD_ORGANIZATION_VALUE = '__add__';
 
@@ -20,47 +18,62 @@ interface OrgOption {
   name: string;
 }
 
-const initialState: UnlockOrganizationState = {};
+const initialState: OrganizationActionState = {};
 
 function AddOrganizationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [state, formAction, pending] = useActionState(unlockOrganization, initialState);
+  const [state, formAction, pending] = useActionState(createOrganizationAction, initialState);
 
+  // Switch to the new org the moment it's created — the secret below is just shown for reference
+  // (e.g. logging in as this org directly elsewhere later), not something you need to act on now.
   useEffect(() => {
-    if (state.success) {
-      onOpenChange(false);
+    if (state.organizationId) {
+      void switchOrganization(state.organizationId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state.organizationId]);
+
+  function copySecret() {
+    navigator.clipboard.writeText(state.secret ?? '');
+    toast.success('Secret copied to clipboard');
+  }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Organization</DialogTitle>
+          <DialogTitle>{state.secret ? 'Organization created' : 'Add Organization'}</DialogTitle>
         </DialogHeader>
-        <form
-          action={async (formData) => {
-            await formAction(formData);
-          }}
-          className="flex flex-col gap-4"
-        >
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="org-secret">Organization secret</Label>
-            <Input id="org-secret" name="secret" type="password" required autoFocus />
+        {state.secret ? (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              This is shown once — copy it now if you&apos;ll need to log in as this organization directly later.
+            </p>
+            <div className="flex items-center gap-2 rounded-none bg-muted/30 p-3 ring-1 ring-foreground/10">
+              <code className="flex-1 overflow-x-auto text-xs break-all">{state.secret}</code>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={copySecret} aria-label="Copy secret">
+                <CopyIcon className="size-3.5" />
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => onOpenChange(false)}>
+                Done
+              </Button>
+            </DialogFooter>
           </div>
-          {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={pending}>
-              {pending ? 'Adding…' : 'Add'}
-            </Button>
-          </DialogFooter>
-        </form>
+        ) : (
+          <form action={formAction} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="org-name">Name</Label>
+              <Input id="org-name" name="name" required autoFocus />
+            </div>
+            {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+            <DialogFooter>
+              <DialogClose render={<Button type="button" variant="ghost" />}>Cancel</DialogClose>
+              <Button type="submit" disabled={pending}>
+                {pending ? 'Creating…' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -109,7 +122,8 @@ export function OrgSwitcher({ orgs, activeOrganizationId }: { orgs: OrgOption[];
           </SelectItem>
         </SelectContent>
       </Select>
-      <AddOrganizationDialog open={addOpen} onOpenChange={setAddOpen} />
+      {/* Conditionally mounted so its create-form state resets fresh each time it's reopened. */}
+      {addOpen ? <AddOrganizationDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
     </>
   );
 }

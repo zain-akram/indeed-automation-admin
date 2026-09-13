@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveOrganizationSecret } from '@/lib/auth-backend';
-import { createOrgsSessionToken, SESSION_COOKIE_NAME } from '@/lib/session';
+import { createAdminSessionToken, SESSION_COOKIE_NAME } from '@/lib/session';
 
 export interface LoginState {
   error?: string;
@@ -17,10 +17,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: 'Incorrect password' };
   }
 
-  const token = await createOrgsSessionToken(
-    [{ organizationId: resolved.organizationId, name: resolved.name, slug: resolved.slug, secret }],
-    resolved.organizationId,
-  );
+  const token = await createAdminSessionToken(secret, resolved.organizationId);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,

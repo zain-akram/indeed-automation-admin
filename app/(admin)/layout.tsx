@@ -7,12 +7,16 @@ import { OrgSwitcher } from '@/components/org-switcher';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { SESSION_COOKIE_NAME, verifyOrgsSessionToken } from '@/lib/session';
+import { getOrganizations } from '@/lib/actions/organizations';
+import { SESSION_COOKIE_NAME, verifyAdminSessionToken } from '@/lib/session';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const session = await verifyOrgsSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
-  const orgs = session?.orgs.map((org) => ({ organizationId: org.organizationId, name: org.name })) ?? [];
+  const session = await verifyAdminSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  const organizations = session ? await getOrganizations() : [];
+  const orgOptions = organizations
+    .filter((org) => org.isActive)
+    .map((org) => ({ organizationId: org._id, name: org.name }));
 
   return (
     <BreadcrumbProvider>
@@ -26,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Breadcrumbs />
             </div>
             <div className="flex items-center gap-2">
-              {session ? <OrgSwitcher orgs={orgs} activeOrganizationId={session.activeOrganizationId} /> : null}
+              {session ? <OrgSwitcher orgs={orgOptions} activeOrganizationId={session.activeOrganizationId} /> : null}
               <form action={logout}>
                 <Button type="submit" variant="ghost" size="sm">
                   Log out
