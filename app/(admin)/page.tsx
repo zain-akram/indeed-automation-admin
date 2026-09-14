@@ -51,8 +51,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ];
 
   const activityStats = [
-    { label: 'Submissions', count: submissionsCount, icon: ClipboardListIcon },
-    { label: 'Sent', count: emailStats.overall.sent, icon: SendIcon },
+    { label: 'Submissions', count: submissionsCount, icon: ClipboardListIcon, href: '/interviews' },
+    { label: 'Sent', count: emailStats.overall.sent, icon: SendIcon, href: '/emails' },
     { label: 'Delivered', count: emailStats.overall.delivered, icon: MailCheckIcon },
     { label: 'Opened', count: emailStats.overall.opened, icon: MailOpenIcon },
     { label: 'Clicked', count: emailStats.overall.clicked, icon: MousePointerClickIcon },
@@ -111,15 +111,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         ) : (
           <Card>
             <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-              {activityStats.map((item) => (
-                <div key={item.label} className="flex flex-col gap-1">
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <item.icon className="size-3.5" />
-                    {item.label}
-                  </span>
-                  <span className="text-2xl font-semibold">{item.count}</span>
-                </div>
-              ))}
+              {activityStats.map((item) => {
+                const content = (
+                  <div className="flex flex-col gap-1">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <item.icon className="size-3.5" />
+                      {item.label}
+                    </span>
+                    <span className="text-2xl font-semibold">{item.count}</span>
+                  </div>
+                );
+                return item.href ? (
+                  <Link key={item.label} href={item.href} className="rounded-none transition-colors hover:bg-muted/50">
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={item.label}>{content}</div>
+                );
+              })}
             </CardContent>
           </Card>
         )}
