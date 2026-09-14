@@ -64,3 +64,15 @@ export function parseCsv(text: string): Record<string, string>[] {
     return record;
   });
 }
+
+function csvEscape(value: string): string {
+  if (/[",\r\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/** Builds a CSV document from a header row and data rows — the inverse of parseCsv(). */
+export function toCsv(headers: string[], rows: string[][]): string {
+  return [headers, ...rows].map((row) => row.map(csvEscape).join(',')).join('\r\n');
+}

@@ -1,3 +1,4 @@
+import { DownloadIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ContactsTable } from '@/components/contacts-table';
@@ -12,9 +13,15 @@ export default async function ContactsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Contacts</h1>
-        <Button render={<Link href="/contacts/new" />} nativeButton={false}>
-          New Contact
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button render={<a href="/api/contacts/export" />} nativeButton={false} variant="outline">
+            <DownloadIcon className="size-4" />
+            Export CSV
+          </Button>
+          <Button render={<Link href="/contacts/new" />} nativeButton={false}>
+            New Contact
+          </Button>
+        </div>
       </div>
 
       {total === 0 ? (
