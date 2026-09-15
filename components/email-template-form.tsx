@@ -1,13 +1,14 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { AiTemplateDialog } from '@/components/ai-template-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceholderLineInput } from '@/components/placeholder-line-input';
 import { RichTextEditor } from '@/components/rich-text-editor';
-import type { EmailTemplateFormState } from '@/lib/actions/email-templates';
+import type { EmailTemplateFormState, GeneratedEmailTemplate } from '@/lib/actions/email-templates';
 import { resolveEmailBody, resolvePlaceholders, SAMPLE_PLACEHOLDER_VALUES } from '@/lib/email-placeholders';
 import type { EmailTemplate } from '@/lib/types';
 
@@ -20,25 +21,43 @@ interface EmailTemplateFormProps {
 export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplateFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const idSuffix = initial?._id ?? 'new';
+  const [label, setLabel] = useState(initial?.label ?? '');
   const [subject, setSubject] = useState(initial?.subject ?? '');
   const [body, setBody] = useState(initial?.body ?? '');
   const [whatsappMessage, setWhatsappMessage] = useState(initial?.whatsappMessage ?? '');
   const [whatsappLinkText, setWhatsappLinkText] = useState(initial?.whatsappLinkText ?? '');
+  // Bumped whenever AI (re)generates content — the subject/body editors are Tiptap-based and only
+  // read their initial content once on mount, so forcing a remount via `key` is how new AI content
+  // actually shows up in them.
+  const [aiVersion, setAiVersion] = useState(0);
 
   const previewSubject = resolvePlaceholders(subject, SAMPLE_PLACEHOLDER_VALUES);
   const previewBody = resolveEmailBody(body, SAMPLE_PLACEHOLDER_VALUES, whatsappLinkText);
 
+  function handleAiGenerated(result: GeneratedEmailTemplate) {
+    setLabel(result.label);
+    setSubject(result.subject);
+    setBody(result.body);
+    setAiVersion((v) => v + 1);
+  }
+
   return (
     <div className="grid items-start gap-6 lg:grid-cols-2">
       <form action={formAction} className="flex flex-col gap-4">
+        <AiTemplateDialog
+          hasContent={Boolean(subject.trim() || body.trim())}
+          currentSubject={subject}
+          currentBody={body}
+          onGenerated={handleAiGenerated}
+        />
         <div className="flex flex-col gap-2">
           <Label htmlFor="label">Label</Label>
           <Input
-            key={`label-${idSuffix}`}
             id="label"
             name="label"
             placeholder="e.g. Next Steps"
-            defaultValue={initial?.label}
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
             required
             autoFocus
           />
@@ -57,7 +76,7 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
           <Label htmlFor="subject">Subject</Label>
           <input type="hidden" name="subject" value={subject} />
           <PlaceholderLineInput
-            key={`subject-${idSuffix}`}
+            key={`subject-${idSuffix}-${aiVersion}`}
             id="subject"
             value={subject}
             onChange={setSubject}
@@ -70,8 +89,8 @@ export function EmailTemplateForm({ action, initial, submitLabel }: EmailTemplat
           <input type="hidden" name="whatsappMessage" value={whatsappMessage} />
           <input type="hidden" name="whatsappLinkText" value={whatsappLinkText} />
           <RichTextEditor
-            key={`body-${idSuffix}`}
-            value={initial?.body ?? ''}
+            key={`body-${idSuffix}-${aiVersion}`}
+            value={body}
             onChange={setBody}
             whatsappMessage={whatsappMessage}
             onWhatsappMessageChange={setWhatsappMessage}

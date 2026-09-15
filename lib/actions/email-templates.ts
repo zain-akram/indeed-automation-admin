@@ -106,3 +106,41 @@ export async function setDefaultEmailTemplateAction(id: string): Promise<void> {
   await backendFetch(`/email-templates/${id}/default`, { method: 'POST' });
   revalidateEmailTemplates();
 }
+
+export interface GeneratedEmailTemplate {
+  label: string;
+  subject: string;
+  body: string;
+}
+
+export interface GenerateEmailTemplateState {
+  error?: string;
+  result?: GeneratedEmailTemplate;
+}
+
+export async function generateEmailTemplateAction(
+  _prevState: GenerateEmailTemplateState,
+  formData: FormData,
+): Promise<GenerateEmailTemplateState> {
+  const prompt = String(formData.get('prompt') ?? '').trim();
+  const currentSubject = String(formData.get('currentSubject') ?? '').trim();
+  const currentBody = String(formData.get('currentBody') ?? '').trim();
+
+  if (!prompt) {
+    return { error: 'Describe what you want the template to say' };
+  }
+
+  try {
+    const result = await backendFetch<GeneratedEmailTemplate>('/email-templates/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt,
+        currentSubject: currentSubject || undefined,
+        currentBody: currentBody || undefined,
+      }),
+    });
+    return { result };
+  } catch (error) {
+    return { error: error instanceof BackendError ? error.message : 'Failed to generate template' };
+  }
+}
