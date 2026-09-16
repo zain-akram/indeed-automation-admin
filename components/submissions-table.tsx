@@ -25,7 +25,12 @@ import { EmailTrackingIcons } from '@/components/email-status-icons';
 import { IndeedIcon } from '@/components/indeed-icon';
 import { SubmissionRowActions } from '@/components/submission-row-actions';
 import { WhatsappInviteDialog } from '@/components/whatsapp-invite-dialog';
-import { getSubmissionsPage, type CandidateStatusFilter, type EmailTrackingFilter } from '@/lib/actions/submissions';
+import {
+  getSubmissionsPage,
+  type CandidateStatusFilter,
+  type EmailTrackingFilter,
+  type GenderFilter,
+} from '@/lib/actions/submissions';
 import { formatRelativeTime } from '@/lib/format-relative-time';
 import { getIndeedCandidateUrl } from '@/lib/indeed';
 import type { EmailTemplate, PopulatedSubmission, TemplateDef, WhatsappAccount } from '@/lib/types';
@@ -43,6 +48,13 @@ const STATUS_OPTIONS: { key: CandidateStatusFilter; label: string }[] = [
   { key: 'whatsapp_failed', label: 'WhatsApp Failed' },
   { key: 'email_sent', label: 'Email Sent' },
   { key: 'email_failed', label: 'Email Failed' },
+];
+
+const GENDER_OPTIONS: { key: GenderFilter; label: string }[] = [
+  { key: 'male', label: 'Male' },
+  { key: 'female', label: 'Female' },
+  { key: 'unknown', label: 'Unknown' },
+  { key: 'unclassified', label: 'Unclassified' },
 ];
 
 interface SubmissionsTableProps {
@@ -71,6 +83,7 @@ export function SubmissionsTable({
   const [search, setSearch] = useState('');
   const [tracking, setTracking] = useState<Set<EmailTrackingFilter>>(new Set());
   const [status, setStatus] = useState<Set<CandidateStatusFilter>>(new Set());
+  const [gender, setGender] = useState<Set<GenderFilter>>(new Set());
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
   const [searching, startSearch] = useTransition();
@@ -79,7 +92,8 @@ export function SubmissionsTable({
   const skippedFirstRun = useRef(false);
   const trackingKey = Array.from(tracking).sort().join(',');
   const statusKey = Array.from(status).sort().join(',');
-  const activeFilterCount = tracking.size + status.size;
+  const genderKey = Array.from(gender).sort().join(',');
+  const activeFilterCount = tracking.size + status.size + gender.size;
 
   useEffect(() => {
     if (!skippedFirstRun.current) {
@@ -93,6 +107,7 @@ export function SubmissionsTable({
           search: search || undefined,
           tracking: tracking.size ? Array.from(tracking) : undefined,
           status: status.size ? Array.from(status) : undefined,
+          gender: gender.size ? Array.from(gender) : undefined,
           limit: pageSize,
         });
         setItems(result.items);
@@ -102,7 +117,7 @@ export function SubmissionsTable({
     }, 300);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, trackingKey, statusKey]);
+  }, [search, trackingKey, statusKey, genderKey]);
 
   function toggleTracking(key: EmailTrackingFilter) {
     setTracking((prev) => {
@@ -128,6 +143,18 @@ export function SubmissionsTable({
     });
   }
 
+  function toggleGender(key: GenderFilter) {
+    setGender((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
   function handleLoadMore() {
     startLoadMore(async () => {
       const result = await getSubmissionsPage({
@@ -135,6 +162,7 @@ export function SubmissionsTable({
         search: search || undefined,
         tracking: tracking.size ? Array.from(tracking) : undefined,
         status: status.size ? Array.from(status) : undefined,
+        gender: gender.size ? Array.from(gender) : undefined,
         limit: pageSize,
         skip: items.length,
       });
@@ -218,6 +246,20 @@ export function SubmissionsTable({
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Gender</DropdownMenuLabel>
+                {GENDER_OPTIONS.map((option) => (
+                  <DropdownMenuCheckboxItem
+                    key={option.key}
+                    checked={gender.has(option.key)}
+                    onCheckedChange={() => toggleGender(option.key)}
+                    closeOnClick={false}
+                  >
+                    {option.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
               {activeFilterCount > 0 ? (
                 <>
                   <DropdownMenuSeparator />
@@ -225,6 +267,7 @@ export function SubmissionsTable({
                     onClick={() => {
                       setTracking(new Set());
                       setStatus(new Set());
+                      setGender(new Set());
                     }}
                   >
                     Clear filters

@@ -16,6 +16,7 @@ export interface Contact {
   email?: string;
   location?: string;
   notes?: string;
+  gender?: 'male' | 'female' | 'unknown';
   createdAt: string;
 }
 

@@ -20,17 +20,45 @@ export interface ContactsPageResult {
   total: number;
 }
 
+export type GenderFilterValue = 'male' | 'female' | 'unknown' | 'unclassified';
+
 export async function getContactsPage(options: {
   search?: string;
+  gender?: GenderFilterValue[];
   limit?: number;
   skip?: number;
 }): Promise<ContactsPageResult> {
   const params = new URLSearchParams();
   if (options.search) params.set('search', options.search);
+  if (options.gender?.length) params.set('gender', options.gender.join(','));
   if (options.limit) params.set('limit', String(options.limit));
   if (options.skip) params.set('skip', String(options.skip));
   const query = params.toString();
   return backendFetch<ContactsPageResult>(`/contacts/page${query ? `?${query}` : ''}`);
+}
+
+export interface GenderStats {
+  male: number;
+  female: number;
+  unknown: number;
+  unclassified: number;
+  total: number;
+}
+
+export async function getGenderStats(): Promise<GenderStats> {
+  return backendFetch<GenderStats>('/contacts/gender-stats');
+}
+
+export interface ClassifyGenderResult {
+  processed: number;
+  remaining: number;
+}
+
+export async function classifyGenderBatchAction(limit = 100): Promise<ClassifyGenderResult> {
+  return backendFetch<ClassifyGenderResult>('/contacts/classify-gender', {
+    method: 'POST',
+    body: JSON.stringify({ limit }),
+  });
 }
 
 export async function getContact(id: string): Promise<Contact> {

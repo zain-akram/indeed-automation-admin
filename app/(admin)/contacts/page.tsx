@@ -2,12 +2,12 @@ import { DownloadIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ContactsTable } from '@/components/contacts-table';
-import { getContactsPage } from '@/lib/actions/contacts';
+import { getContactsPage, getGenderStats } from '@/lib/actions/contacts';
 
 const PAGE_SIZE = 50;
 
 export default async function ContactsPage() {
-  const { items, total } = await getContactsPage({ limit: PAGE_SIZE });
+  const [{ items, total }, genderStats] = await Promise.all([getContactsPage({ limit: PAGE_SIZE }), getGenderStats()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,7 +27,12 @@ export default async function ContactsPage() {
       {total === 0 ? (
         <p className="text-sm text-muted-foreground">No contacts yet.</p>
       ) : (
-        <ContactsTable initialItems={items} initialTotal={total} pageSize={PAGE_SIZE} />
+        <ContactsTable
+          initialItems={items}
+          initialTotal={total}
+          initialGenderStats={genderStats}
+          pageSize={PAGE_SIZE}
+        />
       )}
     </div>
   );

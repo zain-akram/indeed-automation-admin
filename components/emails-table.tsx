@@ -23,6 +23,7 @@ import type { PopulatedEmailSubmission } from '@/lib/types';
 
 type EmailStatusFilter = 'sent' | 'failed';
 type EmailTrackingFilter = 'delivered' | 'opened' | 'clicked' | 'bounced';
+type GenderFilter = 'male' | 'female' | 'unknown' | 'unclassified';
 
 const STATUS_OPTIONS: { key: EmailStatusFilter; label: string }[] = [
   { key: 'sent', label: 'Sent' },
@@ -36,11 +37,19 @@ const TRACKING_OPTIONS: { key: EmailTrackingFilter; label: string; field: keyof 
   { key: 'bounced', label: 'Bounced', field: 'emailBouncedAt' },
 ];
 
+const GENDER_OPTIONS: { key: GenderFilter; label: string }[] = [
+  { key: 'male', label: 'Male' },
+  { key: 'female', label: 'Female' },
+  { key: 'unknown', label: 'Unknown' },
+  { key: 'unclassified', label: 'Unclassified' },
+];
+
 export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmission[] }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<Set<EmailStatusFilter>>(new Set());
   const [tracking, setTracking] = useState<Set<EmailTrackingFilter>>(new Set());
-  const activeFilterCount = status.size + tracking.size;
+  const [gender, setGender] = useState<Set<GenderFilter>>(new Set());
+  const activeFilterCount = status.size + tracking.size + gender.size;
 
   function toggleStatus(key: EmailStatusFilter) {
     setStatus((prev) => {
@@ -56,6 +65,18 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
 
   function toggleTracking(key: EmailTrackingFilter) {
     setTracking((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function toggleGender(key: GenderFilter) {
+    setGender((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -83,9 +104,16 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
       if (tracking.size > 0 && !TRACKING_OPTIONS.some((t) => tracking.has(t.key) && s[t.field])) {
         return false;
       }
+      if (gender.size > 0) {
+        const contactGender = s.contact?.gender;
+        const matches = contactGender ? gender.has(contactGender as GenderFilter) : gender.has('unclassified');
+        if (!matches) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [submissions, search, status, tracking]);
+  }, [submissions, search, status, tracking, gender]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -134,6 +162,20 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Gender</DropdownMenuLabel>
+              {GENDER_OPTIONS.map((option) => (
+                <DropdownMenuCheckboxItem
+                  key={option.key}
+                  checked={gender.has(option.key)}
+                  onCheckedChange={() => toggleGender(option.key)}
+                  closeOnClick={false}
+                >
+                  {option.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuGroup>
             {activeFilterCount > 0 ? (
               <>
                 <DropdownMenuSeparator />
@@ -141,6 +183,7 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                   onClick={() => {
                     setStatus(new Set());
                     setTracking(new Set());
+                    setGender(new Set());
                   }}
                 >
                   Clear filters

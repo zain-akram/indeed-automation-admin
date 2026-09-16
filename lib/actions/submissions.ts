@@ -28,10 +28,13 @@ export type EmailTrackingFilter = 'delivered' | 'opened' | 'clicked' | 'bounced'
 export type CandidateStatusFilter =
   'whatsapp_sent' | 'whatsapp_failed' | 'email_sent' | 'email_failed' | 'not_contacted';
 
+export type GenderFilter = 'male' | 'female' | 'unknown' | 'unclassified';
+
 export async function getSubmissionsPage(options: {
   jobId?: string;
   contactId?: string;
   search?: string;
+  gender?: GenderFilter[];
   tracking?: EmailTrackingFilter[];
   status?: CandidateStatusFilter[];
   limit?: number;
@@ -41,6 +44,7 @@ export async function getSubmissionsPage(options: {
   if (options.jobId) params.set('jobId', options.jobId);
   if (options.contactId) params.set('contactId', options.contactId);
   if (options.search) params.set('search', options.search);
+  if (options.gender?.length) params.set('gender', options.gender.join(','));
   if (options.tracking?.length) params.set('tracking', options.tracking.join(','));
   if (options.status?.length) params.set('status', options.status.join(','));
   if (options.limit) params.set('limit', String(options.limit));
