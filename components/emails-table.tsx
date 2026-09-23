@@ -2,7 +2,7 @@
 
 import { FilterIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -18,23 +18,25 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EmailPreviewButton } from '@/components/email-preview-button';
 import { EmailStatusIcons } from '@/components/email-status-icons';
+import {
+  getEmailSubmissionsPage,
+  type EmailStatusFilter,
+  type EmailTrackingFilter,
+  type GenderFilter,
+} from '@/lib/actions/submissions';
 import { formatRelativeTime } from '@/lib/format-relative-time';
 import type { PopulatedEmailSubmission } from '@/lib/types';
-
-type EmailStatusFilter = 'sent' | 'failed';
-type EmailTrackingFilter = 'delivered' | 'opened' | 'clicked' | 'bounced';
-type GenderFilter = 'male' | 'female' | 'unknown' | 'unclassified';
 
 const STATUS_OPTIONS: { key: EmailStatusFilter; label: string }[] = [
   { key: 'sent', label: 'Sent' },
   { key: 'failed', label: 'Failed' },
 ];
 
-const TRACKING_OPTIONS: { key: EmailTrackingFilter; label: string; field: keyof PopulatedEmailSubmission }[] = [
-  { key: 'delivered', label: 'Delivered', field: 'emailDeliveredAt' },
-  { key: 'opened', label: 'Opened', field: 'emailOpenedAt' },
-  { key: 'clicked', label: 'Clicked', field: 'emailClickedAt' },
-  { key: 'bounced', label: 'Bounced', field: 'emailBouncedAt' },
+const TRACKING_OPTIONS: { key: EmailTrackingFilter; label: string }[] = [
+  { key: 'delivered', label: 'Delivered' },
+  { key: 'opened', label: 'Opened' },
+  { key: 'clicked', label: 'Clicked' },
+  { key: 'bounced', label: 'Bounced' },
 ];
 
 const GENDER_OPTIONS: { key: GenderFilter; label: string }[] = [
@@ -44,12 +46,48 @@ const GENDER_OPTIONS: { key: GenderFilter; label: string }[] = [
   { key: 'unclassified', label: 'Unclassified' },
 ];
 
-export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmission[] }) {
+interface EmailsTableProps {
+  initialItems: PopulatedEmailSubmission[];
+  initialTotal: number;
+  pageSize: number;
+}
+
+export function EmailsTable({ initialItems, initialTotal, pageSize }: EmailsTableProps) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<Set<EmailStatusFilter>>(new Set());
   const [tracking, setTracking] = useState<Set<EmailTrackingFilter>>(new Set());
   const [gender, setGender] = useState<Set<GenderFilter>>(new Set());
+  const [items, setItems] = useState(initialItems);
+  const [total, setTotal] = useState(initialTotal);
+  const [searching, startSearch] = useTransition();
+  const [loadingMore, startLoadMore] = useTransition();
+  const skippedFirstRun = useRef(false);
+  const statusKey = Array.from(status).sort().join(',');
+  const trackingKey = Array.from(tracking).sort().join(',');
+  const genderKey = Array.from(gender).sort().join(',');
   const activeFilterCount = status.size + tracking.size + gender.size;
+
+  useEffect(() => {
+    if (!skippedFirstRun.current) {
+      skippedFirstRun.current = true;
+      return;
+    }
+    const handle = setTimeout(() => {
+      startSearch(async () => {
+        const result = await getEmailSubmissionsPage({
+          search: search || undefined,
+          status: status.size ? Array.from(status) : undefined,
+          tracking: tracking.size ? Array.from(tracking) : undefined,
+          gender: gender.size ? Array.from(gender) : undefined,
+          limit: pageSize,
+        });
+        setItems(result.items);
+        setTotal(result.total);
+      });
+    }, 300);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, statusKey, trackingKey, genderKey]);
 
   function toggleStatus(key: EmailStatusFilter) {
     setStatus((prev) => {
@@ -87,33 +125,21 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
     });
   }
 
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return submissions.filter((s) => {
-      if (query) {
-        const haystack = `${s.contact?.firstName ?? ''} ${s.contact?.lastName ?? ''} ${s.contact?.email ?? ''} ${
-          s.job?.title ?? ''
-        } ${s.emailTemplateId?.label ?? ''}`.toLowerCase();
-        if (!haystack.includes(query)) {
-          return false;
-        }
-      }
-      if (status.size > 0 && !status.has(s.emailStatus as EmailStatusFilter)) {
-        return false;
-      }
-      if (tracking.size > 0 && !TRACKING_OPTIONS.some((t) => tracking.has(t.key) && s[t.field])) {
-        return false;
-      }
-      if (gender.size > 0) {
-        const contactGender = s.contact?.gender;
-        const matches = contactGender ? gender.has(contactGender as GenderFilter) : gender.has('unclassified');
-        if (!matches) {
-          return false;
-        }
-      }
-      return true;
+  function handleLoadMore() {
+    startLoadMore(async () => {
+      const result = await getEmailSubmissionsPage({
+        search: search || undefined,
+        status: status.size ? Array.from(status) : undefined,
+        tracking: tracking.size ? Array.from(tracking) : undefined,
+        gender: gender.size ? Array.from(gender) : undefined,
+        limit: pageSize,
+        skip: items.length,
+      });
+      setItems((prev) => [...prev, ...result.items]);
     });
-  }, [submissions, search, status, tracking, gender]);
+  }
+
+  const hasMore = items.length < total;
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,7 +149,7 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search recipient, job, or template…"
+            placeholder="Search name, phone, or email…"
             className="pl-8"
           />
         </div>
@@ -194,9 +220,9 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
         </DropdownMenu>
       </div>
 
-      {filtered.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {submissions.length === 0 ? 'No emails sent yet.' : 'No emails match your search/filters.'}
+          {search || activeFilterCount > 0 ? 'No emails match your search/filters.' : 'No emails sent yet.'}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-none ring-1 ring-foreground/10">
@@ -211,8 +237,8 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {filtered.map((submission) => (
+            <TableBody className={searching ? 'opacity-50 transition-opacity' : undefined}>
+              {items.map((submission) => (
                 <TableRow key={submission._id}>
                   <TableCell className="font-medium">
                     {submission.contact ? (
@@ -253,6 +279,15 @@ export function EmailsTable({ submissions }: { submissions: PopulatedEmailSubmis
                   </TableCell>
                 </TableRow>
               ))}
+              {hasMore ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
+                      {loadingMore ? 'Loading…' : `Load More (${total - items.length} remaining)`}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>

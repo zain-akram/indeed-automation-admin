@@ -72,11 +72,43 @@ export async function getStatsByAccount(): Promise<Record<string, AccountStats>>
   return backendFetch<Record<string, AccountStats>>('/submissions/stats-by-account');
 }
 
-export async function getEmailSubmissions(filters?: { contactId?: string }): Promise<PopulatedEmailSubmission[]> {
+export type EmailStatusFilter = 'sent' | 'failed';
+
+export interface EmailSubmissionsPageResult {
+  items: PopulatedEmailSubmission[];
+  total: number;
+}
+
+export async function getEmailSubmissionsPage(options: {
+  contactId?: string;
+  search?: string;
+  gender?: GenderFilter[];
+  status?: EmailStatusFilter[];
+  tracking?: EmailTrackingFilter[];
+  limit?: number;
+  skip?: number;
+}): Promise<EmailSubmissionsPageResult> {
   const params = new URLSearchParams();
-  if (filters?.contactId) params.set('contactId', filters.contactId);
+  if (options.contactId) params.set('contactId', options.contactId);
+  if (options.search) params.set('search', options.search);
+  if (options.gender?.length) params.set('gender', options.gender.join(','));
+  if (options.status?.length) params.set('status', options.status.join(','));
+  if (options.tracking?.length) params.set('tracking', options.tracking.join(','));
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.skip) params.set('skip', String(options.skip));
   const query = params.toString();
-  return backendFetch<PopulatedEmailSubmission[]>(`/submissions/emails${query ? `?${query}` : ''}`);
+  return backendFetch<EmailSubmissionsPageResult>(`/submissions/emails${query ? `?${query}` : ''}`);
+}
+
+// Used only by the contact detail page, where "every email sent to this one contact" is inherently
+// a small, bounded list — a generous limit instead of true pagination is enough here.
+export async function getEmailSubmissions(filters?: { contactId?: string }): Promise<PopulatedEmailSubmission[]> {
+  const result = await getEmailSubmissionsPage({ contactId: filters?.contactId, limit: 200 });
+  return result.items;
+}
+
+export async function getSubmissionCountsByJob(): Promise<Record<string, number>> {
+  return backendFetch<Record<string, number>>('/submissions/counts-by-job');
 }
 
 export interface EmailStatsResponse {

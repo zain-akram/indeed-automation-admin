@@ -4,18 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { JobRowActions } from '@/components/job-row-actions';
 import { getJobs } from '@/lib/actions/jobs';
-import { getSubmissions } from '@/lib/actions/submissions';
+import { getSubmissionCountsByJob } from '@/lib/actions/submissions';
 
 export default async function JobsPage() {
-  const [jobs, submissions] = await Promise.all([getJobs(), getSubmissions()]);
-
-  const interviewCounts = new Map<string, number>();
-  for (const submission of submissions) {
-    const jobId = submission.job?._id;
-    if (jobId) {
-      interviewCounts.set(jobId, (interviewCounts.get(jobId) ?? 0) + 1);
-    }
-  }
+  const [jobs, interviewCounts] = await Promise.all([getJobs(), getSubmissionCountsByJob()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,7 +54,7 @@ export default async function JobsPage() {
                       )}
                     </span>
                   </TableCell>
-                  <TableCell>{interviewCounts.get(job._id) ?? 0}</TableCell>
+                  <TableCell>{interviewCounts[job._id] ?? 0}</TableCell>
                   <TableCell className="text-right">
                     <JobRowActions jobId={job._id} jobTitle={job.title} />
                   </TableCell>
