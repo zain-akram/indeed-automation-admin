@@ -70,7 +70,7 @@ export async function GET() {
 
   const rows = contacts.map((contact) => {
     const firstName = toTitleCase(contact.firstName);
-    const lastName = toTitleCase(contact.lastName);
+    const lastName = contact.lastName ? toTitleCase(contact.lastName) : '';
     const fileAs = `${firstName} ${lastName}`.trim();
     const notes = [contact.location, contact.notes].filter(Boolean).join('\n');
     return [

@@ -11,7 +11,7 @@ export interface Job {
 export interface Contact {
   _id: string;
   firstName: string;
-  lastName: string;
+  lastName?: string;
   whatsapp: string;
   email?: string;
   location?: string;
