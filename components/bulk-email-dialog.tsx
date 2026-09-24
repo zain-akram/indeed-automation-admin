@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createSubmission } from '@/lib/actions/submissions';
+import { createSubmissionsBulk } from '@/lib/actions/submissions';
 import type { Contact, EmailTemplate, Job } from '@/lib/types';
 
 interface BulkRecipient {
@@ -58,31 +58,41 @@ export function BulkEmailDialog({ recipients, emailTemplates, onDone }: BulkEmai
 
     setSending(true);
     setResults([]);
-    const collected: BulkResult[] = [];
 
-    for (const recipient of recipients) {
-      const { contact, job } = recipient;
-      if (!contact.email) {
-        collected.push({ contact, ok: false, error: 'No email address on file' });
-        setResults([...collected]);
-        setCurrent(collected.length);
-        continue;
-      }
-      try {
-        const result = await createSubmission({
-          jobId: job._id,
-          contactId: contact._id,
-          channel: 'email',
+    // Recipients with no email are reported immediately without hitting the backend at all;
+    // everyone else goes out in a single bulk request that fans out server-side, instead of one
+    // sequential HTTP round-trip per recipient.
+    const skipped: BulkResult[] = recipients
+      .filter((r) => !r.contact.email)
+      .map((r) => ({ contact: r.contact, ok: false, error: 'No email address on file' }));
+    setResults(skipped);
+    setCurrent(skipped.length);
+
+    try {
+      const results = await createSubmissionsBulk(
+        withEmail.map((r) => ({
+          jobId: r.job._id,
+          contactId: r.contact._id,
+          channel: 'email' as const,
           emailTemplateId,
           force: true,
-        });
-        const ok = result.submission?.emailStatus === 'sent';
-        collected.push({ contact, ok, error: ok ? undefined : (result.submission?.emailError ?? result.error) });
-      } catch (error) {
-        collected.push({ contact, ok: false, error: error instanceof Error ? error.message : 'Failed to send' });
-      }
-      setResults([...collected]);
-      setCurrent(collected.length);
+        })),
+      );
+      const sent: BulkResult[] = withEmail.map((r, i) => {
+        const result = results[i];
+        const ok = result?.submission?.emailStatus === 'sent';
+        return { contact: r.contact, ok, error: ok ? undefined : (result?.submission?.emailError ?? result?.error) };
+      });
+      setResults([...skipped, ...sent]);
+      setCurrent(recipients.length);
+    } catch (error) {
+      const failed: BulkResult[] = withEmail.map((r) => ({
+        contact: r.contact,
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to send',
+      }));
+      setResults([...skipped, ...failed]);
+      setCurrent(recipients.length);
     }
 
     setSending(false);

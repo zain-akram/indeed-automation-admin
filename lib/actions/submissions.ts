@@ -158,6 +158,14 @@ export async function createSubmission(input: CreateSubmissionInput): Promise<Cr
   });
 }
 
+// One request that fans out server-side (bounded concurrency), instead of N sequential round-trips.
+export async function createSubmissionsBulk(items: CreateSubmissionInput[]): Promise<CreateSubmissionResult[]> {
+  return backendFetch<CreateSubmissionResult[]>('/submissions/bulk', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  });
+}
+
 export async function resendSubmissionAction(submissionId: string): Promise<CreateSubmissionResult> {
   const result = await backendFetch<CreateSubmissionResult>(`/submissions/${submissionId}/resend`, {
     method: 'POST',
